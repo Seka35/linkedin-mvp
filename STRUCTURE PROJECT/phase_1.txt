@@ -1,0 +1,160 @@
+# PHASE 1 : SETUP PROJET & STRUCTURE DE BASE
+
+## Objectif
+Créer la structure du projet et installer les dépendances nécessaires.
+
+## Instructions pour l'IA
+
+### 1.1 Créer la structure de dossiers suivante :
+
+```
+linkedin-mvp/
+├── main.py                    # Point d'entrée de l'application
+├── requirements.txt           # Dépendances Python
+├── .env.example              # Template variables d'environnement
+├── .env                      # Variables d'environnement (gitignored)
+├── .gitignore
+├── README.md
+│
+├── config/
+│   └── settings.py           # Configuration centralisée
+│
+├── services/
+│   ├── __init__.py
+│   ├── scraper.py            # Service de scraping (Apify + Google SERP)
+│   ├── linkedin_bot.py       # Bot LinkedIn (Playwright)
+│   └── proxy_manager.py      # Gestion des proxies
+│
+├── database/
+│   ├── __init__.py
+│   ├── db.py                 # Connexion SQLite
+│   └── models.py             # Modèles de données
+│
+├── web/
+│   ├── __init__.py
+│   ├── app.py                # Flask app
+│   ├── templates/
+│   │   ├── base.html
+│   │   ├── index.html
+│   │   ├── prospects.html
+│   │   └── campaigns.html
+│   └── static/
+│       ├── css/
+│       │   └── style.css
+│       └── js/
+│           └── main.js
+│
+└── data/
+    └── prospects.db          # Base SQLite (auto-créée)
+```
+
+### 1.2 Créer le fichier `requirements.txt` avec :
+
+```txt
+# Web Framework
+flask==3.0.0
+
+# Automation
+playwright==1.40.0
+
+# Database
+sqlalchemy==2.0.23
+
+# HTTP Requests
+requests==2.31.0
+httpx==0.25.2
+
+# Environment
+python-dotenv==1.0.0
+
+# Scraping APIs
+apify-client==1.6.3
+
+# Proxy
+requests[socks]==2.31.0
+
+# Utilities
+python-dateutil==2.8.2
+```
+
+### 1.3 Créer le fichier `.env.example` :
+
+```bash
+# LinkedIn Credentials
+LINKEDIN_EMAIL=your-email@example.com
+LINKEDIN_PASSWORD=your-password
+
+# Proxy Configuration (optionnel pour MVP)
+PROXY_URL=
+PROXY_USERNAME=
+PROXY_PASSWORD=
+
+# Apify API (gratuit 5$/mois)
+APIFY_API_KEY=your-apify-key
+
+# Google SERP API (optionnel, ou scraping direct)
+SERP_API_KEY=
+
+# Flask
+FLASK_SECRET_KEY=change-this-to-random-string
+FLASK_ENV=development
+```
+
+### 1.4 Créer le `.gitignore` :
+
+```
+.env
+*.db
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+*.log
+.DS_Store
+```
+
+### 1.5 Créer un README.md basique :
+
+```markdown
+# LinkedIn Automation MVP
+
+Prototype simple d'automatisation LinkedIn avec scraping et actions automatisées.
+
+## Installation
+
+```bash
+# Créer environnement virtuel
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# ou
+venv\Scripts\activate  # Windows
+
+# Installer dépendances
+pip install -r requirements.txt
+
+# Installer Playwright browsers
+playwright install chromium
+
+# Copier .env
+cp .env.example .env
+# Éditer .env avec vos credentials
+```
+
+## Lancement
+
+```bash
+python main.py
+```
+
+Accès: http://localhost:5000
+```
+
+## Livrables de Phase 1
+- [ ] Structure de dossiers créée
+- [ ] requirements.txt avec toutes les dépendances
+- [ ] .env.example avec template
+- [ ] .gitignore configuré
+- [ ] README.md avec instructions
+
+---

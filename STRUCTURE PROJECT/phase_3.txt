@@ -1,0 +1,173 @@
+# 🚀 PROTOTYPE MVP - LINKEDIN AUTOMATION
+
+## 📋 PLAN D'EXÉCUTION PAR PHASES
+
+**Objectif :** Créer un prototype simple, gratuit, fonctionnel en Python avec interface web basique pour automatiser LinkedIn (scraping + connexions + commentaires + DMs).
+
+---
+
+# PHASE 3 : SERVICE DE SCRAPING
+
+## Objectif
+Créer un service de scraping utilisant Google SERP (gratuit avec scraping direct) et Apify (5$ gratuits).
+
+## Instructions pour l'IA
+
+### 3.1 Créer `services/scraper.py` :
+
+```python
+"""
+Service de scraping pour trouver des prospects LinkedIn.
+Utilise Google Search avec dorks et Apify pour enrichissement.
+"""
+
+import requests
+from apify_client import ApifyClient
+import os
+from typing import List, Dict
+from urllib.parse import quote_plus
+import time
+import random
+
+class LinkedInScraper:
+    """Scraper LinkedIn utilisant Google SERP et Apify"""
+    
+    def __init__(self):
+        self.apify_key = os.getenv('APIFY_API_KEY')
+        self.apify_client = ApifyClient(self.apify_key) if self.apify_key else None
+    
+    def google_dork_search(self, query: str, max_results: int = 20) -> List[Dict]:
+        """
+        Rechercher des profils LinkedIn via Google Dork.
+        
+        Args:
+            query: Requête de recherche (ex: "CEO Paris SaaS")
+            max_results: Nombre max de résultats
+        
+        Returns:
+            Liste de dictionnaires avec URL et infos de base
+        """
+        # Construire le dork LinkedIn
+        full_query = f'site:linkedin.com/in/ {query}'
+        encoded_query = quote_plus(full_query)
+        
+        # URL Google Search (scraping direct, gratuit mais limité)
+        url = f"https://www.google.com/search?q={encoded_query}&num={max_results}"
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            # Parser les résultats (simple regex pour MVP)
+            import re
+            linkedin_urls = re.findall(r'https://www\.linkedin\.com/in/[\w-]+', response.text)
+            
+            # Dédupliquer
+            unique_urls = list(set(linkedin_urls))[:max_results]
+            
+            results = []
+            for url in unique_urls:
+                # Extraire username du profil
+                username = url.split('/in/')[-1].rstrip('/')
+                
+                results.append({
+                    'linkedin_url': url,
+                    'full_name': self._extract_name_from_url(username),
+                    'source': 'google_serp'
+                })
+            
+            print(f"✅ Trouvé {len(results)} profils via Google")
+            return results
+            
+        except Exception as e:
+            print(f"❌ Erreur Google Search: {e}")
+            return []
+    
+    def apify_search(self, search_url: str, max_results: int = 20) -> List[Dict]:
+        """
+        Utiliser Apify pour scraper LinkedIn Sales Navigator ou profils.
+        
+        Args:
+            search_url: URL Sales Navigator ou liste de profils
+            max_results: Nombre max de résultats
+        
+        Returns:
+            Liste enrichie de prospects
+        """
+        if not self.apify_client:
+            print("⚠️ Apify non configuré")
+            return []
+        
+        try:
+            # Utiliser l'actor Apify LinkedIn Scraper
+            # https://apify.com/apify/linkedin-profile-scraper
+            
+            run_input = {
+                "startUrls": [{"url": search_url}],
+                "maxResults": max_results,
+            }
+            
+            print(f"🔄 Lancement Apify scraping...")
+            run = self.apify_client.actor("apify/linkedin-profile-scraper").call(run_input=run_input)
+            
+            results = []
+            for item in self.apify_client.dataset(run["defaultDatasetId"]).iterate_items():
+                results.append({
+                    'linkedin_url': item.get('url'),
+                    'full_name': item.get('fullName'),
+                    'headline': item.get('headline'),
+                    'company': item.get('company'),
+                    'location': item.get('location'),
+                    'profile_picture': item.get('photoUrl'),
+                    'source': 'apify'
+                })
+            
+            print(f"✅ Apify a trouvé {len(results)} profils")
+            return results
+            
+        except Exception as e:
+            print(f"❌ Erreur Apify: {e}")
+            return []
+    
+    def _extract_name_from_url(self, username: str) -> str:
+        """Extraire un nom lisible depuis un username LinkedIn"""
+        # Remplacer tirets par espaces et capitaliser
+        name = username.replace('-', ' ').title()
+        return name
+    
+    def search_prospects(self, query: str, use_apify: bool = False, max_results: int = 20) -> List[Dict]:
+        """
+        Méthode principale de recherche.
+        
+        Args:
+            query: Requête de recherche
+            use_apify: Utiliser Apify ou juste Google
+            max_results: Nombre max de résultats
+        
+        Returns:
+            Liste de prospects trouvés
+        """
+        results = []
+        
+        # 1. Google Dork (toujours)
+        google_results = self.google_dork_search(query, max_results)
+        results.extend(google_results)
+        
+        # 2. Apify (optionnel)
+        if use_apify and self.apify_client:
+            # Pour Apify, on peut chercher directement sur Sales Navigator
+            # ou enrichir les profils trouvés via Google
+            pass
+        
+        return results
+```
+
+## Livrables de Phase 3
+- [ ] Service de scraping créé
+- [ ] Fonction google_dork_search() fonctionnelle
+- [ ] Fonction apify_search() configurée (optionnelle)
+- [ ] Parser basique des URLs LinkedIn
+- [ ] Retourne liste de dictionnaires avec prospects

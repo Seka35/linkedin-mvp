@@ -1,0 +1,262 @@
+# 🚀 PROTOTYPE MVP - LINKEDIN AUTOMATION
+
+## 📋 PLAN D'EXÉCUTION PAR PHASES
+
+**Objectif :** Créer un prototype simple, gratuit, fonctionnel en Python avec interface web basique pour automatiser LinkedIn (scraping + connexions + commentaires + DMs).
+
+---
+
+# PHASE 6 : POINT D'ENTRÉE & TESTS
+
+## Objectif
+Créer le point d'entrée principal et tester l'ensemble du système.
+
+## Instructions pour l'IA
+
+### 6.1 Créer `main.py` :
+
+```python
+"""
+Point d'entrée principal de l'application LinkedIn MVP.
+"""
+
+import os
+from dotenv import load_dotenv
+
+# Charger variables d'environnement
+load_dotenv()
+
+# Vérifier que les credentials LinkedIn sont présents
+if not os.getenv('LINKEDIN_EMAIL') or not os.getenv('LINKEDIN_PASSWORD'):
+    print("❌ ERREUR: LINKEDIN_EMAIL et LINKEDIN_PASSWORD doivent être configurés dans .env")
+    exit(1)
+
+# Initialiser la base de données
+from database import init_db
+init_db()
+
+# Lancer l'application Flask
+from web.app import app
+
+if __name__ == '__main__':
+    print("🚀 Démarrage de LinkedIn Automation MVP...")
+    print("📍 Accès: http://localhost:5000")
+    print("")
+    print("⚠️  ATTENTION:")
+    print("  - Utilisez ce bot de manière responsable")
+    print("  - Respectez les limites (10-20 actions/jour max)")
+    print("  - Risque de ban LinkedIn en cas d'abus")
+    print("")
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)
+```
+
+### 6.2 Créer `config/settings.py` :
+
+```python
+"""
+Configuration centralisée de l'application.
+"""
+
+import os
+
+# LinkedIn
+LINKEDIN_EMAIL = os.getenv('LINKEDIN_EMAIL')
+LINKEDIN_PASSWORD = os.getenv('LINKEDIN_PASSWORD')
+
+# Proxy
+PROXY_URL = os.getenv('PROXY_URL')
+PROXY_USERNAME = os.getenv('PROXY_USERNAME')
+PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
+
+# Apify
+APIFY_API_KEY = os.getenv('APIFY_API_KEY')
+
+# Limites de sécurité
+MAX_ACTIONS_PER_DAY = 20
+MIN_DELAY_BETWEEN_ACTIONS = 60  # secondes
+
+# Flask
+FLASK_SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'dev-key-change-in-prod')
+FLASK_DEBUG = os.getenv('FLASK_ENV') == 'development'
+```
+
+### 6.3 Mettre à jour le README.md avec guide complet :
+
+```markdown
+# 🤖 LinkedIn Automation MVP
+
+Prototype d'automatisation LinkedIn avec scraping Google, Apify, et actions automatisées (connexions, commentaires, DMs).
+
+## ⚠️ Avertissement
+
+Ce bot est un **prototype éducatif**. L'automatisation de LinkedIn viole leurs conditions d'utilisation et peut entraîner:
+- Restriction de compte
+- Ban permanent
+- Problèmes légaux
+
+**Utilisez à vos risques et périls, de manière responsable et limitée.**
+
+## 📋 Fonctionnalités
+
+✅ **Scraping de prospects**
+- Google Dorks (gratuit)
+- Apify LinkedIn Scraper (5$ gratuits/mois)
+
+✅ **Actions LinkedIn automatisées**
+- Visite de profils
+- Demandes de connexion (avec message personnalisé)
+- Commentaires sur posts
+- Messages directs (DMs)
+
+✅ **Interface web**
+- Dashboard avec statistiques
+- Gestion des prospects
+- Création de campagnes
+- Historique des actions
+
+## 🚀 Installation
+
+### Prérequis
+- Python 3.9+
+- Compte LinkedIn
+- (Optionnel) Clé API Apify
+- (Optionnel) Proxy résidentiel
+
+### Étapes
+
+1. **Cloner le projet**
+```bash
+git clone <votre-repo>
+cd linkedin-mvp
+```
+
+2. **Créer environnement virtuel**
+```bash
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# ou
+venv\Scripts\activate  # Windows
+```
+
+3. **Installer dépendances**
+```bash
+pip install -r requirements.txt
+playwright install chromium
+```
+
+4. **Configuration**
+```bash
+cp .env.example .env
+nano .env  # Éditer avec vos credentials
+```
+
+Variables requises:
+```bash
+LINKEDIN_EMAIL=votre-email@example.com
+LINKEDIN_PASSWORD=votre-mot-de-passe
+APIFY_API_KEY=votre-cle-apify  # Optionnel
+```
+
+5. **Lancer l'application**
+```bash
+python main.py
+```
+
+6. **Accéder à l'interface**
+```
+http://localhost:5000
+```
+
+## 📖 Guide d'utilisation
+
+### 1. Rechercher des prospects
+
+Sur la page Dashboard:
+1. Entrer une requête (ex: "CEO Paris SaaS")
+2. Définir nombre max de résultats (5-50)
+3. Cliquer "Rechercher"
+4. Les prospects sont ajoutés automatiquement
+
+### 2. Gérer les prospects
+
+Sur la page Prospects:
+- Filtrer par statut (Nouveaux, Connectés, Messagés)
+- Voir détails de chaque prospect
+- Actions manuelles:
+  - 🤝 Envoyer demande de connexion
+  - 💬 Envoyer message direct
+
+### 3. Créer une campagne
+
+Sur la page Campagnes:
+1. Cliquer "+ Nouvelle campagne"
+2. Renseigner:
+   - Nom
+   - Requête de recherche
+   - Messages templates
+   - Limite quotidienne
+3. Lancer la campagne
+
+### 4. Bonnes pratiques
+
+⚠️ **Limites recommandées:**
+- Max 10-20 actions par jour
+- Espacer les actions de 5-10 minutes
+- Personnaliser les messages
+- Ne pas automatiser 24/7
+
+## 🏗️ Structure du projet
+
+```
+linkedin-mvp/
+├── main.py              # Point d'entrée
+├── database/            # SQLite + SQLAlchemy
+├── services/            # Scraper + Bot LinkedIn
+├── web/                 # Interface Flask
+├── config/              # Configuration
+└── data/                # Base de données SQLite
+```
+
+## 🛠️ Technologies
+
+- **Backend:** Python, Flask, SQLAlchemy
+- **Automation:** Playwright
+- **Scraping:** Apify, Google Search
+- **Database:** SQLite
+- **Frontend:** HTML, CSS, JavaScript
+
+## 📝 TODO / Améliorations futures
+
+- [ ] Ajouter scheduling automatique des campagnes
+- [ ] Améliorer templates de messages avec variables
+- [ ] Ajouter analytics et rapports
+- [ ] Implémenter rotation de proxies
+- [ ] Déploiement sur serveur distant
+- [ ] Dockerisation
+
+## 🐛 Dépannage
+
+**Erreur de login LinkedIn:**
+- Vérifier credentials dans .env
+- LinkedIn peut demander vérification 2FA
+- Essayer en mode non-headless (`headless=False`)
+
+**Sélecteurs Playwright ne fonctionnent pas:**
+- LinkedIn change régulièrement son HTML
+- Mettre à jour les sélecteurs dans `linkedin_bot.py`
+
+**Proxy ne fonctionne pas:**
+- Vérifier format: `http://username:password@host:port`
+- Tester le proxy manuellement
+
+## 📄 Licence
+
+MIT - Utilisez à vos risques et périls.
+```
+
+## Livrables de Phase 6
+- [ ] main.py créé avec point d'entrée
+- [ ] settings.py avec configuration centralisée
+- [ ] README.md complet avec instructions détaillées
+- [ ] Système complet et testable

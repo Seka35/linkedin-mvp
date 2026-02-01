@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .stat-card-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: transform 0.2s;
+    }
+
+    .stat-card-link:hover {
+        transform: translateY(-5px);
+    }
+
+    .stat-card {
+        cursor: pointer;
+    }
+</style>
+
+<div class="dashboard">
+    <h2>📊 Dashboard</h2>
+
+    <div class="stats-grid">
+        <a href="/prospects?status=all" style="text-decoration:none; color:inherit;">
+            <div class="stat-card">
+                <h3>{{ stats.total_prospects }}</h3>
+                <p>Total Prospects</p>
+            </div>
+        </a>
+
+        <a href="/prospects?status=new" style="text-decoration:none; color:inherit;">
+            <div class="stat-card">
+                <h3>{{ stats.new_prospects }}</h3>
+                <p>✨ New</p>
+            </div>
+        </a>
+
+        <a href="/prospects?status=connected" style="text-decoration:none; color:inherit;">
+            <div class="stat-card">
+                <h3>{{ stats.connected }}</h3>
+                <p>✅ Connected</p>
+            </div>
+        </a>
+
+        <a href="/prospects?status=followed" style="text-decoration:none; color:inherit;">
+            <div class="stat-card">
+                <h3>{{ stats.followed }}</h3>
+                <p>👤 Followed</p>
+            </div>
+        </a>
+
+        <a href="/prospects?status=messaged" style="text-decoration:none; color:inherit;">
+            <div class="stat-card">
+                <h3>{{ stats.messaged }}</h3>
+                <p>📨 Messaged</p>
+            </div>
+        </a>
+    </div>
+
+    <div class="search-section">
+        <h3>🔍 Search Prospects</h3>
+        <p>Launch scraping to find new profiles (Google/SearchAPI).</p>
+        <form id="search-form">
+            <input type="text" id="search-query" placeholder='Ex: "CEO Paris SaaS"' required>
+            <input type="number" id="max-results" value="10" min="1" max="50" title="Max results">
+            <button type="submit">Search</button>
+        </form>
+        <div id="search-results"></div>
+    </div>
+
+    <div class="recent-actions">
+        <h3>📝 Recent Actions</h3>
+        {% if recent_actions %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Action</th>
+                    <th>Prospect</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for action in recent_actions %}
+                <tr>
+                    <td>{{ action.executed_at.strftime('%m/%d %H:%M') }}</td>
+                    <td>{{ action.action_type }}</td>
+                    <td>{{ action.prospect.full_name }}</td>
+                    <td class="status-{{ action.status }}">{{ action.status }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No recent actions.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

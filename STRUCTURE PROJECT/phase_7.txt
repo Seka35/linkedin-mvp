@@ -1,0 +1,172 @@
+# 🚀 PROTOTYPE MVP - LINKEDIN AUTOMATION
+
+## 📋 PLAN D'EXÉCUTION PAR PHASES
+
+**Objectif :** Créer un prototype simple, gratuit, fonctionnel en Python avec interface web basique pour automatiser LinkedIn (scraping + connexions + commentaires + DMs).
+
+---
+
+# PHASE 7 : TESTS & VALIDATION
+
+## Objectif
+Tester l'ensemble du système de bout en bout.
+
+## Instructions pour l'IA
+
+### 7.1 Créer un script de test `test_system.py` :
+
+```python
+"""
+Script de test du système complet.
+"""
+
+import sys
+import os
+
+# Ajouter au path
+sys.path.insert(0, os.path.dirname(__file__))
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from database import init_db, SessionLocal, Prospect, Campaign, Action
+from services.scraper import LinkedInScraper
+from services.linkedin_bot import LinkedInBot
+
+def test_database():
+    """Tester la base de données"""
+    print("\n🧪 Test 1: Base de données")
+    
+    init_db()
+    db = SessionLocal()
+    
+    # Créer un prospect de test
+    test_prospect = Prospect(
+        linkedin_url="https://linkedin.com/in/test-user",
+        full_name="Test User",
+        headline="CEO",
+        source="test"
+    )
+    
+    db.add(test_prospect)
+    db.commit()
+    
+    # Vérifier
+    count = db.query(Prospect).count()
+    print(f"✅ Base de données OK ({count} prospects)")
+    
+    db.close()
+
+def test_scraper():
+    """Tester le scraper"""
+    print("\n🧪 Test 2: Scraper")
+    
+    scraper = LinkedInScraper()
+    
+    # Test Google Dork
+    results = scraper.google_dork_search("CEO Paris", max_results=5)
+    
+    if len(results) > 0:
+        print(f"✅ Scraper OK ({len(results)} résultats)")
+        print(f"Exemple: {results[0]}")
+    else:
+        print("⚠️ Aucun résultat trouvé")
+
+def test_bot_connection():
+    """Tester la connexion du bot"""
+    print("\n🧪 Test 3: Bot LinkedIn (connexion)")
+    
+    bot = LinkedInBot(headless=False)
+    
+    try:
+        bot.start()
+        print("✅ Bot connecté à LinkedIn")
+        bot.stop()
+    except Exception as e:
+        print(f"❌ Erreur connexion bot: {e}")
+
+def run_all_tests():
+    """Lancer tous les tests"""
+    print("=" * 50)
+    print("🧪 TESTS DU SYSTÈME")
+    print("=" * 50)
+    
+    test_database()
+    test_scraper()
+    
+    # Test bot seulement si credentials présents
+    if os.getenv('LINKEDIN_EMAIL') and os.getenv('LINKEDIN_PASSWORD'):
+        test_bot_connection()
+    else:
+        print("\n⚠️ Test 3: Skipped (pas de credentials LinkedIn)")
+    
+    print("\n" + "=" * 50)
+    print("✅ Tests terminés!")
+    print("=" * 50)
+
+if __name__ == '__main__':
+    run_all_tests()
+```
+
+### 7.2 Instructions de test manuel :
+
+```markdown
+# 📝 CHECKLIST DE TEST
+
+## Test 1: Installation
+- [ ] `pip install -r requirements.txt` fonctionne
+- [ ] `playwright install chromium` fonctionne
+- [ ] `.env` créé et rempli
+- [ ] `python test_system.py` passe tous les tests
+
+## Test 2: Base de données
+- [ ] Fichier `data/prospects.db` créé
+- [ ] Tables créées (prospects, campaigns, actions)
+
+## Test 3: Scraping
+- [ ] Recherche Google Dork retourne des résultats
+- [ ] URLs LinkedIn extraites correctement
+- [ ] Prospects ajoutés en base
+
+## Test 4: Interface Web
+- [ ] `python main.py` démarre l'app
+- [ ] http://localhost:5000 accessible
+- [ ] Dashboard affiche stats
+- [ ] Page Prospects liste les prospects
+- [ ] Page Campagnes accessible
+
+## Test 5: Bot LinkedIn
+- [ ] Login LinkedIn réussit
+- [ ] Visite d'un profil fonctionne
+- [ ] Demande de connexion s'envoie
+- [ ] Message direct s'envoie
+- [ ] Commentaire sur post fonctionne
+
+## Test 6: Workflow complet
+1. [ ] Rechercher prospects via Dashboard
+2. [ ] Voir prospects ajoutés sur page Prospects
+3. [ ] Envoyer demande de connexion manuelle
+4. [ ] Vérifier action loggée dans Dashboard
+5. [ ] Créer une campagne
+6. [ ] Lancer campagne et voir actions
+
+## Problèmes courants
+
+**Playwright error:**
+→ `playwright install chromium`
+
+**Import error:**
+→ Vérifier PYTHONPATH et structure dossiers
+
+**LinkedIn login fail:**
+→ Tester manuellement, vérifier 2FA
+
+**Scraping returns empty:**
+→ Google peut bloquer, essayer avec proxy
+```
+
+## Livrables de Phase 7
+- [ ] Script test_system.py créé
+- [ ] Tous les tests passent
+- [ ] Documentation de test créée
+- [ ] Système validé et fonctionnel

@@ -1,0 +1,695 @@
+# 🚀 PROTOTYPE MVP - LINKEDIN AUTOMATION
+
+## 📋 PLAN D'EXÉCUTION PAR PHASES
+
+**Objectif :** Créer un prototype simple, gratuit, fonctionnel en Python avec interface web basique pour automatiser LinkedIn (scraping + connexions + commentaires + DMs).
+
+---
+
+# PHASE 4 : BOT LINKEDIN (PLAYWRIGHT avec Cookie)
+
+## Objectif
+Créer un bot LinkedIn avec Playwright utilisant le cookie de session `li_at` pour éviter les logins répétés et réduire les détections.
+
+## Instructions pour l'IA
+
+### 4.1 Créer `services/proxy_manager.py` :
+
+```python
+"""
+Gestion des proxies (optionnel pour MVP).
+"""
+
+import os
+
+class ProxyManager:
+    """Gestionnaire de proxies"""
+    
+    def __init__(self):
+        self.proxy_url = os.getenv('PROXY_URL')
+        self.proxy_username = os.getenv('PROXY_USERNAME')
+        self.proxy_password = os.getenv('PROXY_PASSWORD')
+    
+    def get_proxy_config(self) -> dict:
+        """Retourner config proxy pour Playwright"""
+        if not self.proxy_url:
+            return None
+        
+        return {
+            'server': self.proxy_url,
+            'username': self.proxy_username,
+            'password': self.proxy_password
+        }
+```
+
+### 4.2 Créer `services/linkedin_bot.py` (VERSION COOKIE) :
+
+```python
+"""
+Bot LinkedIn utilisant Playwright avec authentification par cookie.
+Plus sûr et plus rapide que login email/password.
+"""
+
+from playwright.sync_api import sync_playwright, Page, Browser
+import os
+import time
+import random
+import json
+from .proxy_manager import ProxyManager
+
+class LinkedInBot:
+    """Bot d'automatisation LinkedIn avec authentification cookie"""
+    
+    def __init__(self, headless: bool = True):
+        self.li_at_cookie = os.getenv('LINKEDIN_LI_AT_COOKIE')
+        self.headless = headless
+        self.proxy_manager = ProxyManager()
+        
+        self.playwright = None
+        self.browser = None
+        self.context = None
+        self.page = None
+        
+        if not self.li_at_cookie:
+            raise ValueError("❌ LINKEDIN_LI_AT_COOKIE non configuré dans .env")
+    
+    def start(self):
+        """Démarrer le navigateur avec cookie de session"""
+        print("🚀 Démarrage du bot LinkedIn (mode cookie)...")
+        
+        self.playwright = sync_playwright().start()
+        
+        # Configuration proxy
+        proxy_config = self.proxy_manager.get_proxy_config()
+        
+        # Lancer navigateur
+        self.browser = self.playwright.chromium.launch(
+            headless=self.headless,
+            proxy=proxy_config
+        )
+        
+        # Créer contexte avec fingerprinting
+        self.context = self.browser.new_context(
+            viewport={'width': 1920, 'height': 1080},
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            locale='fr-FR',
+            timezone_id='Europe/Paris'
+        )
+        
+        # Injecter le cookie de session LinkedIn
+        self._inject_cookie()
+        
+        self.page = self.context.new_page()
+        
+        # Vérifier que le cookie fonctionne
+        self._verify_session()
+        
+        print("✅ Bot démarré et authentifié via cookie")
+    
+    def stop(self):
+        """Arrêter le navigateur"""
+        if self.browser:
+            self.browser.close()
+        if self.playwright:
+            self.playwright.stop()
+        print("🛑 Bot arrêté")
+    
+    def _inject_cookie(self):
+        """Injecter le cookie li_at dans le contexte du navigateur"""
+        cookie = {
+            'name': 'li_at',
+            'value': self.li_at_cookie,
+            'domain': '.linkedin.com',
+            'path': '/',
+            'httpOnly': True,
+            'secure': True,
+            'sameSite': 'None'
+        }
+        
+        self.context.add_cookies([cookie])
+        print("🍪 Cookie li_at injecté")
+    
+    def _verify_session(self):
+        """Vérifier que la session est valide"""
+        print("🔐 Vérification de la session...")
+        
+        self.page.goto('https://www.linkedin.com/feed/', wait_until='networkidle')
+        time.sleep(3)
+        
+        # Vérifier qu'on est bien connecté (présence du feed)
+        if '/feed' in self.page.url or '/mynetwork' in self.page.url:
+            print("✅ Session valide, connecté à LinkedIn")
+        else:
+            # Si on est redirigé vers /login, le cookie est invalide
+            if '/login' in self.page.url or '/uas' in self.page.url:
+                raise Exception("❌ Cookie invalide ou expiré. Reconnectez-vous manuellement et récupérez un nouveau cookie.")
+            else:
+                print("⚠️ État de connexion incertain, continuer avec prudence")
+    
+    def visit_profile(self, profile_url: str) -> bool:
+        """
+        Visiter un profil LinkedIn.
+        
+        Args:
+            profile_url: URL du profil
+        
+        Returns:
+            True si succès
+        """
+        try:
+            print(f"👁️ Visite du profil: {profile_url}")
+            
+            self.page.goto(profile_url, wait_until='networkidle')
+            
+            # Simuler comportement humain
+            self._random_delay(3, 6)
+            self._scroll_page()
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erreur visite profil: {e}")
+            return False
+    
+    def send_connection_request(self, profile_url: str, message: str = "") -> bool:
+        """
+        Envoyer une demande de connexion.
+        
+        Args:
+            profile_url: URL du profil
+            message: Message personnalisé (optionnel, max 300 char)
+        
+        Returns:
+            True si succès
+        """
+        try:
+            print(f"🤝 Envoi demande de connexion: {profile_url}")
+            
+            # Visiter le profil d'abord
+            self.page.goto(profile_url, wait_until='networkidle')
+            self._random_delay(2, 4)
+            
+            # Cliquer sur bouton "Se connecter" / "Connect"
+            # Plusieurs sélecteurs possibles selon la langue et la version de LinkedIn
+            connect_selectors = [
+                'button:has-text("Connect")',
+                'button:has-text("Se connecter")',
+                'button.pvs-profile-actions__action:has-text("Connect")',
+                'button.pvs-profile-actions__action:has-text("Se connecter")',
+            ]
+            
+            connect_button = None
+            for selector in connect_selectors:
+                try:
+                    connect_button = self.page.locator(selector).first
+                    if connect_button.is_visible(timeout=2000):
+                        break
+                except:
+                    continue
+            
+            if not connect_button or not connect_button.is_visible():
+                print("⚠️ Bouton 'Connect' non trouvé (déjà connecté ou profil privé)")
+                return False
+            
+            connect_button.click()
+            self._random_delay(1, 2)
+            
+            # Si message personnalisé
+            if message:
+                try:
+                    # Cliquer "Ajouter une note" / "Add a note"
+                    add_note_selectors = [
+                        'button:has-text("Add a note")',
+                        'button:has-text("Ajouter une note")',
+                    ]
+                    
+                    for selector in add_note_selectors:
+                        try:
+                            add_note = self.page.locator(selector).first
+                            if add_note.is_visible(timeout=2000):
+                                add_note.click()
+                                self._random_delay(1, 2)
+                                break
+                        except:
+                            continue
+                    
+                    # Écrire le message
+                    textarea = self.page.locator('textarea[name="message"], textarea#custom-message').first
+                    if textarea.is_visible(timeout=2000):
+                        textarea.fill(message[:300])  # Max 300 caractères
+                        self._random_delay(1, 2)
+                except Exception as e:
+                    print(f"⚠️ Impossible d'ajouter une note: {e}")
+            
+            # Envoyer la demande
+            send_selectors = [
+                'button:has-text("Send")',
+                'button:has-text("Envoyer")',
+                'button[aria-label="Send invitation"]',
+                'button[aria-label="Envoyer l\'invitation"]',
+            ]
+            
+            for selector in send_selectors:
+                try:
+                    send_button = self.page.locator(selector).first
+                    if send_button.is_visible(timeout=2000):
+                        send_button.click()
+                        break
+                except:
+                    continue
+            
+            print("✅ Demande de connexion envoyée")
+            self._random_delay(2, 4)
+            return True
+                
+        except Exception as e:
+            print(f"❌ Erreur envoi connexion: {e}")
+            return False
+    
+    def comment_on_post(self, post_url: str, comment: str) -> bool:
+        """
+        Commenter sur un post LinkedIn.
+        
+        Args:
+            post_url: URL du post
+            comment: Texte du commentaire
+        
+        Returns:
+            True si succès
+        """
+        try:
+            print(f"💬 Commentaire sur post: {post_url}")
+            
+            self.page.goto(post_url, wait_until='networkidle')
+            self._random_delay(2, 4)
+            
+            # Cliquer sur la zone de commentaire
+            comment_box_selectors = [
+                '.ql-editor[contenteditable="true"]',
+                '[contenteditable="true"].ql-editor',
+                'div.ql-editor',
+            ]
+            
+            comment_box = None
+            for selector in comment_box_selectors:
+                try:
+                    comment_box = self.page.locator(selector).first
+                    if comment_box.is_visible(timeout=2000):
+                        break
+                except:
+                    continue
+            
+            if not comment_box:
+                print("⚠️ Zone de commentaire non trouvée")
+                return False
+            
+            comment_box.click()
+            self._random_delay(1, 2)
+            
+            # Écrire le commentaire
+            comment_box.fill(comment)
+            self._random_delay(2, 3)
+            
+            # Cliquer sur "Publier" / "Post"
+            post_selectors = [
+                'button:has-text("Post")',
+                'button:has-text("Publier")',
+                'button.comments-comment-box__submit-button',
+            ]
+            
+            for selector in post_selectors:
+                try:
+                    post_button = self.page.locator(selector).first
+                    if post_button.is_visible(timeout=2000):
+                        post_button.click()
+                        break
+                except:
+                    continue
+            
+            print("✅ Commentaire publié")
+            self._random_delay(2, 4)
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erreur commentaire: {e}")
+            return False
+    
+    def send_message(self, profile_url: str, message: str) -> bool:
+        """
+        Envoyer un message direct (DM).
+        
+        Args:
+            profile_url: URL du profil
+            message: Message à envoyer
+        
+        Returns:
+            True si succès
+        """
+        try:
+            print(f"💌 Envoi message: {profile_url}")
+            
+            # Aller sur le profil
+            self.page.goto(profile_url, wait_until='networkidle')
+            self._random_delay(2, 4)
+            
+            # Cliquer sur "Message"
+            message_button_selectors = [
+                'button:has-text("Message")',
+                'button:has-text("Envoyer un message")',
+                'button.pvs-profile-actions__action:has-text("Message")',
+            ]
+            
+            message_button = None
+            for selector in message_button_selectors:
+                try:
+                    message_button = self.page.locator(selector).first
+                    if message_button.is_visible(timeout=2000):
+                        break
+                except:
+                    continue
+            
+            if not message_button or not message_button.is_visible():
+                print("⚠️ Bouton 'Message' non disponible (pas encore connecté?)")
+                return False
+            
+            message_button.click()
+            self._random_delay(2, 3)
+            
+            # Écrire le message dans la boîte de dialogue
+            message_box_selectors = [
+                '.msg-form__contenteditable[contenteditable="true"]',
+                'div[contenteditable="true"].msg-form__contenteditable',
+                'div.msg-form__contenteditable',
+            ]
+            
+            message_box = None
+            for selector in message_box_selectors:
+                try:
+                    message_box = self.page.locator(selector).last
+                    if message_box.is_visible(timeout=3000):
+                        break
+                except:
+                    continue
+            
+            if not message_box:
+                print("⚠️ Boîte de message non trouvée")
+                return False
+            
+            message_box.click()
+            self._random_delay(0.5, 1)
+            message_box.fill(message)
+            self._random_delay(1, 2)
+            
+            # Envoyer
+            send_selectors = [
+                'button:has-text("Send")',
+                'button:has-text("Envoyer")',
+                'button.msg-form__send-button',
+            ]
+            
+            for selector in send_selectors:
+                try:
+                    send_button = self.page.locator(selector).last
+                    if send_button.is_visible(timeout=2000):
+                        send_button.click()
+                        break
+                except:
+                    continue
+            
+            print("✅ Message envoyé")
+            self._random_delay(2, 4)
+            return True
+                
+        except Exception as e:
+            print(f"❌ Erreur envoi message: {e}")
+            return False
+    
+    def _random_delay(self, min_sec: float = 2, max_sec: float = 5):
+        """Délai aléatoire pour simuler comportement humain"""
+        delay = random.uniform(min_sec, max_sec)
+        time.sleep(delay)
+    
+    def _scroll_page(self):
+        """Scroller la page pour simuler lecture"""
+        try:
+            self.page.evaluate("""
+                window.scrollTo({
+                    top: Math.random() * document.body.scrollHeight / 2,
+                    behavior: 'smooth'
+                });
+            """)
+            self._random_delay(1, 3)
+        except:
+            pass
+    
+    def save_cookies(self, filepath: str = 'cookies.json'):
+        """
+        Sauvegarder les cookies de session (optionnel, pour backup).
+        
+        Args:
+            filepath: Chemin du fichier de sauvegarde
+        """
+        cookies = self.context.cookies()
+        with open(filepath, 'w') as f:
+            json.dump(cookies, f, indent=2)
+        print(f"✅ Cookies sauvegardés dans {filepath}")
+    
+    def load_cookies(self, filepath: str = 'cookies.json'):
+        """
+        Charger des cookies depuis un fichier (optionnel).
+        
+        Args:
+            filepath: Chemin du fichier de cookies
+        """
+        try:
+            with open(filepath, 'r') as f:
+                cookies = json.load(f)
+            self.context.add_cookies(cookies)
+            print(f"✅ Cookies chargés depuis {filepath}")
+        except FileNotFoundError:
+            print(f"⚠️ Fichier {filepath} non trouvé")
+```
+
+### 4.3 Mettre à jour `.env.example` :
+
+```bash
+# LinkedIn Authentication (COOKIE)
+# Pour récupérer votre cookie li_at:
+# 1. Connectez-vous à LinkedIn dans votre navigateur
+# 2. Ouvrir DevTools (F12) > Application/Stockage > Cookies
+# 3. Trouver le cookie "li_at" sur linkedin.com
+# 4. Copier sa valeur complète ici
+LINKEDIN_LI_AT_COOKIE=votre-cookie-li-at-ici
+
+# Ancienne méthode (ne plus utiliser)
+# LINKEDIN_EMAIL=your-email@example.com
+# LINKEDIN_PASSWORD=your-password
+
+# Proxy Configuration (optionnel pour MVP)
+PROXY_URL=
+PROXY_USERNAME=
+PROXY_PASSWORD=
+
+# Apify API (gratuit 5$/mois)
+APIFY_API_KEY=your-apify-key
+
+# Google SERP API (optionnel, ou scraping direct)
+SERP_API_KEY=
+
+# Flask
+FLASK_SECRET_KEY=change-this-to-random-string
+FLASK_ENV=development
+```
+
+### 4.4 Créer un script helper pour récupérer le cookie :
+
+**Fichier: `scripts/get_linkedin_cookie.py`**
+
+```python
+"""
+Script helper pour récupérer facilement le cookie LinkedIn li_at.
+"""
+
+from playwright.sync_api import sync_playwright
+import time
+
+def get_linkedin_cookie():
+    """Ouvrir LinkedIn et attendre que l'utilisateur se connecte pour extraire le cookie"""
+    
+    print("=" * 60)
+    print("🍪 RÉCUPÉRATION DU COOKIE LINKEDIN")
+    print("=" * 60)
+    print("\nInstructions:")
+    print("1. Une fenêtre de navigateur va s'ouvrir")
+    print("2. Connectez-vous à LinkedIn normalement")
+    print("3. Une fois connecté, le cookie sera extrait automatiquement")
+    print("4. Copiez le cookie affiché dans votre fichier .env")
+    print("\nAppuyez sur Entrée pour continuer...")
+    input()
+    
+    with sync_playwright() as p:
+        # Lancer navigateur (non-headless pour voir)
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context(
+            viewport={'width': 1920, 'height': 1080}
+        )
+        page = context.new_page()
+        
+        # Aller sur LinkedIn
+        print("\n🌐 Ouverture de LinkedIn...")
+        page.goto('https://www.linkedin.com/login')
+        
+        print("\n⏳ En attente de votre connexion...")
+        print("   Connectez-vous dans le navigateur qui s'est ouvert")
+        print("   (Le script attend max 120 secondes)")
+        
+        # Attendre que l'utilisateur se connecte (max 2 minutes)
+        try:
+            page.wait_for_url('**/feed/**', timeout=120000)
+            print("\n✅ Connexion détectée!")
+            
+            # Récupérer tous les cookies
+            cookies = context.cookies()
+            
+            # Trouver le cookie li_at
+            li_at_cookie = None
+            for cookie in cookies:
+                if cookie['name'] == 'li_at':
+                    li_at_cookie = cookie['value']
+                    break
+            
+            if li_at_cookie:
+                print("\n" + "=" * 60)
+                print("✅ COOKIE RÉCUPÉRÉ AVEC SUCCÈS!")
+                print("=" * 60)
+                print("\nCopiez cette ligne dans votre fichier .env :\n")
+                print(f"LINKEDIN_LI_AT_COOKIE={li_at_cookie}")
+                print("\n" + "=" * 60)
+                print("\n⚠️  IMPORTANT:")
+                print("   - Ce cookie expire généralement après 1 an")
+                print("   - Ne le partagez jamais publiquement")
+                print("   - Gardez-le dans .env (qui est dans .gitignore)")
+                print("=" * 60)
+            else:
+                print("\n❌ Cookie li_at non trouvé")
+                print("   Vérifiez que vous êtes bien connecté à LinkedIn")
+            
+        except Exception as e:
+            print(f"\n❌ Erreur ou timeout: {e}")
+            print("   Relancez le script et connectez-vous plus rapidement")
+        
+        finally:
+            print("\nFermeture du navigateur dans 5 secondes...")
+            time.sleep(5)
+            browser.close()
+
+if __name__ == '__main__':
+    get_linkedin_cookie()
+```
+
+### 4.5 Mettre à jour `main.py` pour vérifier le cookie :
+
+```python
+"""
+Point d'entrée principal de l'application LinkedIn MVP.
+"""
+
+import os
+from dotenv import load_dotenv
+
+# Charger variables d'environnement
+load_dotenv()
+
+# Vérifier que le cookie LinkedIn est présent
+if not os.getenv('LINKEDIN_LI_AT_COOKIE'):
+    print("❌ ERREUR: LINKEDIN_LI_AT_COOKIE doit être configuré dans .env")
+    print("\n📖 Pour récupérer votre cookie:")
+    print("   1. Lancez: python scripts/get_linkedin_cookie.py")
+    print("   2. Connectez-vous à LinkedIn dans le navigateur qui s'ouvre")
+    print("   3. Copiez le cookie affiché dans votre .env")
+    print("")
+    exit(1)
+
+# Initialiser la base de données
+from database import init_db
+init_db()
+
+# Lancer l'application Flask
+from web.app import app
+
+if __name__ == '__main__':
+    print("🚀 Démarrage de LinkedIn Automation MVP...")
+    print("📍 Accès: http://localhost:5000")
+    print("")
+    print("✅ Authentification: Cookie li_at")
+    print("")
+    print("⚠️  ATTENTION:")
+    print("  - Utilisez ce bot de manière responsable")
+    print("  - Respectez les limites (10-20 actions/jour max)")
+    print("  - Risque de ban LinkedIn en cas d'abus")
+    print("")
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)
+```
+
+### 4.6 Mettre à jour le README avec instructions cookie :
+
+**Ajout dans README.md (section Installation) :**
+
+```markdown
+## 🍪 Récupération du Cookie LinkedIn
+
+Au lieu d'utiliser email/password, on utilise le cookie de session `li_at` qui est plus sûr et évite les détections.
+
+### Méthode automatique (recommandée)
+
+```bash
+python scripts/get_linkedin_cookie.py
+```
+
+1. Un navigateur s'ouvre
+2. Connectez-vous à LinkedIn normalement
+3. Le script extrait automatiquement le cookie
+4. Copiez-le dans votre `.env`
+
+### Méthode manuelle
+
+1. Connectez-vous à LinkedIn dans Chrome/Firefox
+2. Ouvrir DevTools (F12)
+3. Onglet "Application" (Chrome) ou "Stockage" (Firefox)
+4. Section "Cookies" > `https://www.linkedin.com`
+5. Trouver le cookie nommé `li_at`
+6. Copier sa **valeur complète**
+7. Coller dans `.env`:
+
+```bash
+LINKEDIN_LI_AT_COOKIE=AQEDATXXXXXXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### ⚠️ Sécurité du Cookie
+
+- **Durée de validité:** ~1 an
+- **Ne jamais partager** ce cookie (accès complet à votre compte)
+- **Garder dans .env** (déjà dans .gitignore)
+- Si compromis, déconnectez-vous de LinkedIn pour l'invalider
+
+### Avantages du Cookie vs Email/Password
+
+✅ Pas de login à chaque démarrage
+✅ Moins de détection par LinkedIn
+✅ Plus rapide (skip la page de login)
+✅ Pas de problème avec 2FA
+✅ Même session que votre navigateur principal
+```
+
+## Livrables de Phase 4 (VERSION COOKIE)
+- [ ] Bot LinkedIn avec authentification cookie créé
+- [ ] Fonction `_inject_cookie()` pour injecter le cookie
+- [ ] Fonction `_verify_session()` pour valider le cookie
+- [ ] Script helper `get_linkedin_cookie.py` pour récupérer le cookie
+- [ ] Fonction `visit_profile()` implémentée
+- [ ] Fonction `send_connection_request()` avec message optionnel
+- [ ] Fonction `comment_on_post()` implémentée
+- [ ] Fonction `send_message()` (DM) implémentée
+- [ ] Délais aléatoires et simulation comportement humain
+- [ ] Documentation README mise à jour

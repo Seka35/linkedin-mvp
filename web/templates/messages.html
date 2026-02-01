@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="messages-page">
+    <h2>💬 Message History</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th style="width: 50px;"></th>
+                <th>Prospect</th>
+                <th>Message Content</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in messages %}
+            <tr>
+                <td style="white-space:nowrap; color:#666; font-size:0.9rem;">
+                    {{ m.executed_at.strftime('%m/%d %H:%M') }}
+                </td>
+                <td>
+                    <img src="{{ m.prospect.profile_picture or 'https://ui-avatars.com/api/?name=' + m.prospect.full_name }}"
+                        alt="" onclick="openModal({{ m.prospect.id }})"
+                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #eee; cursor: pointer;">
+                </td>
+                <td>
+                    <strong onclick="openModal({{ m.prospect.id }})" style="cursor: pointer;">{{ m.prospect.full_name
+                        }}</strong><br>
+                    <span style="font-size:0.8rem; color:#888;">{{ m.prospect.headline[:50] }}...</span>
+                </td>
+                <td style="max-width:400px;">
+                    <div onclick="openMessageModal(this.innerText)" title="Click to view full message"
+                        style="background:#f1f3f4; padding:10px; border-radius:8px; font-size:0.9rem; color:#333; cursor:pointer; transition: background 0.2s;">
+                        {{ m.message_sent or 'No content' }}
+                    </div>
+                </td>
+                <td>
+                    <span class="status-badge status-{{ m.status }}">
+                        {{ m.status }}
+                    </span>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align:center; padding:30px; color:#888;">
+                    No messages sent yet.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

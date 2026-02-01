@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Automation MVP</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>🤖 LinkedIn Bot MVP</h1>
+            <ul>
+                <a href="/" class="nav-link">Dashboard</a>
+                <a href="/prospects" class="nav-link">Prospects</a>
+                <a href="/messages" class="nav-link">Messages</a>
+                <a href="/campaigns" class="nav-link">Campaigns</a>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- GLOBAL DETAILS MODAL -->
+    <div id="prospect-modal" class="modal-overlay" onclick="if(event.target === this) closeModal()">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+
+            <div class="modal-header">
+                <img id="m-photo" src="" alt="Profile" class="modal-img">
+                <div class="modal-info">
+                    <h2 id="m-name">Loading...</h2>
+                    <p id="m-headline"></p>
+                    <p id="m-location-container" style="font-size:0.85rem; color:#888; margin-top:5px; display:none;">
+                        📍 <span id="m-location"></span>
+                    </p>
+                    <p id="m-contact-container" style="font-size:0.85rem; color:#555; margin-top:5px; display:none;">
+                        <span id="m-email-box" style="margin-right:15px; display:none;">📧 <a id="m-email" href="#"
+                                style="color:#1976d2; text-decoration:none;"></a></span>
+                        <span id="m-phone-box" style="display:none;">📞 <span id="m-phone"></span></span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h3>About</h3>
+                    <div id="m-about" class="modal-text"></div>
+                </div>
+
+                <div class="modal-section">
+                    <h3>Experience</h3>
+                    <!-- Removed modal-text class to avoid global pre-wrap -->
+                    <div id="m-experience"></div>
+                </div>
+
+                <div class="modal-section" id="sec-skills">
+                    <h3>Skills</h3>
+                    <div id="m-skills" style="display:flex; flex-wrap:wrap;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GLOBAL STYLES FOR MODAL -->
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 600px;
+            max-width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 25px;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .modal-info h2 {
+            margin: 0 0 5px 0;
+            font-size: 1.5rem;
+        }
+
+        .modal-info p {
+            margin: 0;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .modal-section {
+            margin-bottom: 20px;
+        }
+
+        .modal-section h3 {
+            font-size: 1rem;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #1976d2;
+            display: inline-block;
+            margin-bottom: 10px;
+            padding-bottom: 3px;
+        }
+
+        .modal-text {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #444;
+            white-space: pre-wrap;
+        }
+
+        .skill-tag {
+            display: inline-block;
+            background: #e8f0fe;
+            color: #1967d2;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            margin: 3px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #aaa;
+            background: none;
+            border: none;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+    </style>
+
+    <script>
+        async function openModal(id) {
+            const modal = document.getElementById('prospect-modal');
+            modal.display = 'flex'; // Show immediately
+            document.getElementById('m-name').textContent = "Loading...";
+
+            // Reset display
+            document.getElementById('m-location-container').style.display = 'none';
+            document.getElementById('m-contact-container').style.display = 'none';
+            document.getElementById('sec-skills').style.display = 'none';
+
+            document.getElementById('prospect-modal').style.display = 'flex';
+
+            try {
+                const res = await fetch(`/api/prospects/${id}`);
+                const data = await res.json();
+
+                if (!data.success) {
+                    alert("Error loading prospect details.");
+                    closeModal();
+                    return;
+                }
+                const p = data.prospect;
+
+                document.getElementById('m-name').textContent = p.name;
+                document.getElementById('m-headline').textContent = p.headline;
+
+                // Location handling
+                if (p.location && p.location.trim() !== "") {
+                    document.getElementById('m-location').textContent = p.location;
+                    document.getElementById('m-location-container').style.display = 'block';
+                }
+
+                // Contact handling
+                document.getElementById('m-contact-container').style.display = 'none';
+                document.getElementById('m-email-box').style.display = 'none';
+                document.getElementById('m-phone-box').style.display = 'none';
+
+                let hasContact = false;
+                if (p.email && p.email.trim() !== "") {
+                    document.getElementById('m-email').textContent = p.email;
+                    document.getElementById('m-email').href = "mailto:" + p.email;
+                    document.getElementById('m-email-box').style.display = 'inline';
+                    hasContact = true;
+                }
+                if (p.phone && p.phone.trim() !== "") {
+                    document.getElementById('m-phone').textContent = p.phone;
+                    document.getElementById('m-phone-box').style.display = 'inline';
+                    hasContact = true;
+                }
+                if (hasContact) {
+                    document.getElementById('m-contact-container').style.display = 'block';
+                }
+
+                document.getElementById('m-photo').src = p.photo || ('https://ui-avatars.com/api/?name=' + p.name);
+                document.getElementById('m-about').textContent = p.about || "No description available.";
+
+                // Experience Parsing
+                const expContainer = document.getElementById('m-experience');
+                expContainer.innerHTML = '';
+                let experiences = [];
+                try {
+                    if (p.experience && p.experience.trim().startsWith('[')) {
+                        experiences = JSON.parse(p.experience);
+                    } else {
+                        expContainer.textContent = p.experience || "No experience info.";
+                    }
+                } catch (e) { expContainer.textContent = p.experience || "No experience info."; }
+
+                if (Array.isArray(experiences) && experiences.length > 0) {
+                    experiences.forEach(exp => {
+                        const div = document.createElement('div');
+                        div.style.marginBottom = '20px';
+                        div.style.borderLeft = '3px solid #1976d2'; // Blue accent
+                        div.style.paddingLeft = '12px';
+
+                        const title = exp.title || "Unknown Role";
+                        const company = exp.companyName || exp.company || "";
+                        const dates = (exp.jobStartedOn || "") + (exp.jobEndedOn ? " - " + exp.jobEndedOn : (exp.jobStillWorking ? " - Present" : ""));
+                        const desc = exp.jobDescription || exp.description || "";
+
+                        // Tight spacing for header info, pre-wrap only for description
+                        div.innerHTML = `
+                        <div style="font-weight:700; color:#222; font-size:1rem; margin-bottom:2px;">${title}</div>
+                        <div style="font-size:0.9rem; color:#444; font-weight:500; margin-bottom:2px;">${company}</div>
+                        <div style="font-size:0.8rem; color:#777; margin-bottom:8px;">${dates}</div>
+                        <div style="font-size:0.85rem; color:#555; white-space: pre-wrap; line-height:1.4;">${desc}</div>
+                    `;
+                        expContainer.appendChild(div);
+                    });
+                }
+
+                // Skills Parsing
+                const skillsContainer = document.getElementById('m-skills');
+                skillsContainer.innerHTML = '';
+                const secSkills = document.getElementById('sec-skills');
+                let skills = [];
+                try {
+                    if (p.skills && p.skills.trim().startsWith('[')) {
+                        const parsed = JSON.parse(p.skills);
+                        skills = parsed.map(s => (typeof s === 'object' && s.title) ? s.title : s);
+                    } else if (p.skills) {
+                        skills = p.skills.split(/,|\n/).map(s => s.trim()).filter(s => s);
+                    }
+                } catch (e) { if (p.skills) skills = p.skills.split(',').map(s => s.trim()); }
+
+                if (skills && skills.length > 0) {
+                    skills.forEach(s => {
+                        const span = document.createElement('span');
+                        span.className = 'skill-tag';
+                        span.textContent = s;
+                        skillsContainer.appendChild(span);
+                    });
+                    secSkills.style.display = 'block';
+                } else {
+                    secSkills.style.display = 'none';
+                }
+
+            } catch (e) {
+                console.error(e);
+                alert("Network Error");
+                closeModal();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('prospect-modal').style.display = 'none';
+        }
+
+        // --- MESSAGE MODAL ---
+        function openMessageModal(text) {
+            document.getElementById('msg-full-content').textContent = text;
+            document.getElementById('message-modal').style.display = 'flex';
+        }
+        function closeMessageModal() {
+            document.getElementById('message-modal').style.display = 'none';
+        }
+    </script>
+
+    <!-- MESSAGE MODAL HTML -->
+    <div id="message-modal" class="modal-overlay" onclick="if(event.target === this) closeMessageModal()">
+        <div class="modal-content" style="width: 500px; max-width: 90%;">
+            <button class="close-modal" onclick="closeMessageModal()">&times;</button>
+            <h3 style="margin-top:0; color:#333; border-bottom:1px solid #eee; padding-bottom:10px;">Message Content
+            </h3>
+            <div id="msg-full-content"
+                style="white-space: pre-wrap; margin-top: 15px; line-height: 1.6; color: #444; background: #f8f9fa; padding: 15px; border-radius: 8px; font-size: 0.95rem;">
+            </div>
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

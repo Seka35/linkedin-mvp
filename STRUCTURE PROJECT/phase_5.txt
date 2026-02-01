@@ -1,0 +1,789 @@
+# 🚀 PROTOTYPE MVP - LINKEDIN AUTOMATION
+
+## 📋 PLAN D'EXÉCUTION PAR PHASES
+
+**Objectif :** Créer un prototype simple, gratuit, fonctionnel en Python avec interface web basique pour automatiser LinkedIn (scraping + connexions + commentaires + DMs).
+
+---
+
+# PHASE 5 : INTERFACE WEB FLASK
+
+## Objectif
+Créer une interface web simple avec Flask pour gérer prospects, campagnes, et déclencher actions.
+
+## Instructions pour l'IA
+
+### 5.1 Créer `web/app.py` :
+
+```python
+"""
+Application Flask pour l'interface web du bot LinkedIn.
+"""
+
+from flask import Flask, render_template, request, jsonify, redirect, url_for
+import sys
+import os
+
+# Ajouter le dossier parent au path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from database import init_db, SessionLocal, Prospect, Campaign, Action
+from services.scraper import LinkedInScraper
+from services.linkedin_bot import LinkedInBot
+from datetime import datetime
+
+app = Flask(__name__)
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key')
+
+# Initialiser la DB au démarrage
+init_db()
+
+# Instance globale du scraper
+scraper = LinkedInScraper()
+
+# Instance globale du bot (sera initialisée à la demande)
+bot = None
+
+@app.route('/')
+def index():
+    """Page d'accueil avec stats"""
+    db = SessionLocal()
+    
+    total_prospects = db.query(Prospect).count()
+    connected = db.query(Prospect).filter(Prospect.status == 'connected').count()
+    messaged = db.query(Prospect).filter(Prospect.status == 'messaged').count()
+    
+    recent_actions = db.query(Action).order_by(Action.executed_at.desc()).limit(10).all()
+    
+    db.close()
+    
+    stats = {
+        'total_prospects': total_prospects,
+        'connected': connected,
+        'messaged': messaged,
+    }
+    
+    return render_template('index.html', stats=stats, recent_actions=recent_actions)
+
+@app.route('/prospects')
+def prospects():
+    """Page liste des prospects"""
+    db = SessionLocal()
+    
+    status_filter = request.args.get('status', 'all')
+    
+    query = db.query(Prospect)
+    if status_filter != 'all':
+        query = query.filter(Prospect.status == status_filter)
+    
+    prospects_list = query.order_by(Prospect.added_at.desc()).all()
+    
+    db.close()
+    
+    return render_template('prospects.html', prospects=prospects_list, status_filter=status_filter)
+
+@app.route('/campaigns')
+def campaigns():
+    """Page liste des campagnes"""
+    db = SessionLocal()
+    
+    campaigns_list = db.query(Campaign).order_by(Campaign.created_at.desc()).all()
+    
+    db.close()
+    
+    return render_template('campaigns.html', campaigns=campaigns_list)
+
+@app.route('/api/scrape', methods=['POST'])
+def api_scrape():
+    """API: Lancer un scraping"""
+    data = request.json
+    query = data.get('query')
+    max_results = data.get('max_results', 20)
+    use_apify = data.get('use_apify', False)
+    
+    if not query:
+        return jsonify({'error': 'Query required'}), 400
+    
+    # Scraper
+    results = scraper.search_prospects(query, use_apify, max_results)
+    
+    # Sauvegarder en DB
+    db = SessionLocal()
+    added_count = 0
+    
+    for result in results:
+        # Vérifier si existe déjà
+        existing = db.query(Prospect).filter(Prospect.linkedin_url == result['linkedin_url']).first()
+        
+        if not existing:
+            prospect = Prospect(
+                linkedin_url=result['linkedin_url'],
+                full_name=result.get('full_name'),
+                headline=result.get('headline'),
+                company=result.get('company'),
+                location=result.get('location'),
+                profile_picture=result.get('profile_picture'),
+                source=result.get('source')
+            )
+            db.add(prospect)
+            added_count += 1
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({
+        'success': True,
+        'found': len(results),
+        'added': added_count
+    })
+
+@app.route('/api/connect', methods=['POST'])
+def api_connect():
+    """API: Envoyer demande de connexion"""
+    data = request.json
+    prospect_id = data.get('prospect_id')
+    message = data.get('message', '')
+    
+    db = SessionLocal()
+    prospect = db.query(Prospect).filter(Prospect.id == prospect_id).first()
+    
+    if not prospect:
+        db.close()
+        return jsonify({'error': 'Prospect not found'}), 404
+    
+    # Démarrer le bot si pas déjà fait
+    global bot
+    if not bot:
+        bot = LinkedInBot(headless=False)  # headless=False pour voir l'action
+        bot.start()
+    
+    # Envoyer demande de connexion
+    success = bot.send_connection_request(prospect.linkedin_url, message)
+    
+    # Logger l'action
+    action = Action(
+        prospect_id=prospect.id,
+        action_type='connect',
+        message_sent=message,
+        status='success' if success else 'failed'
+    )
+    db.add(action)
+    
+    # Mettre à jour prospect
+    if success:
+        prospect.status = 'connected'
+        prospect.last_action_at = datetime.utcnow()
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': success})
+
+@app.route('/api/message', methods=['POST'])
+def api_message():
+    """API: Envoyer un message"""
+    data = request.json
+    prospect_id = data.get('prospect_id')
+    message = data.get('message')
+    
+    db = SessionLocal()
+    prospect = db.query(Prospect).filter(Prospect.id == prospect_id).first()
+    
+    if not prospect:
+        db.close()
+        return jsonify({'error': 'Prospect not found'}), 404
+    
+    # Démarrer le bot si pas déjà fait
+    global bot
+    if not bot:
+        bot = LinkedInBot(headless=False)
+        bot.start()
+    
+    # Envoyer message
+    success = bot.send_message(prospect.linkedin_url, message)
+    
+    # Logger l'action
+    action = Action(
+        prospect_id=prospect.id,
+        action_type='message',
+        message_sent=message,
+        status='success' if success else 'failed'
+    )
+    db.add(action)
+    
+    # Mettre à jour prospect
+    if success:
+        prospect.status = 'messaged'
+        prospect.last_action_at = datetime.utcnow()
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': success})
+
+@app.route('/api/comment', methods=['POST'])
+def api_comment():
+    """API: Commenter un post"""
+    data = request.json
+    post_url = data.get('post_url')
+    comment = data.get('comment')
+    prospect_id = data.get('prospect_id')  # Optionnel
+    
+    # Démarrer le bot si pas déjà fait
+    global bot
+    if not bot:
+        bot = LinkedInBot(headless=False)
+        bot.start()
+    
+    # Commenter
+    success = bot.comment_on_post(post_url, comment)
+    
+    # Logger l'action si prospect_id fourni
+    if prospect_id:
+        db = SessionLocal()
+        action = Action(
+            prospect_id=prospect_id,
+            action_type='comment',
+            comment_sent=comment,
+            post_url=post_url,
+            status='success' if success else 'failed'
+        )
+        db.add(action)
+        db.commit()
+        db.close()
+    
+    return jsonify({'success': success})
+
+@app.route('/api/campaign/create', methods=['POST'])
+def api_create_campaign():
+    """API: Créer une nouvelle campagne"""
+    data = request.json
+    
+    db = SessionLocal()
+    
+    campaign = Campaign(
+        name=data.get('name'),
+        search_query=data.get('search_query'),
+        connection_message=data.get('connection_message'),
+        first_message=data.get('first_message'),
+        daily_limit=data.get('daily_limit', 10)
+    )
+    
+    db.add(campaign)
+    db.commit()
+    
+    campaign_id = campaign.id
+    db.close()
+    
+    return jsonify({'success': True, 'campaign_id': campaign_id})
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
+```
+
+### 5.2 Créer les templates HTML
+
+**Fichier: `web/templates/base.html`**
+
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Automation MVP</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>🤖 LinkedIn Bot MVP</h1>
+            <ul>
+                <li><a href="/">Dashboard</a></li>
+                <li><a href="/prospects">Prospects</a></li>
+                <li><a href="/campaigns">Campagnes</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
+```
+
+**Fichier: `web/templates/index.html`**
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>📊 Dashboard</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>{{ stats.total_prospects }}</h3>
+            <p>Prospects totaux</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ stats.connected }}</h3>
+            <p>Connectés</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ stats.messaged }}</h3>
+            <p>Messagés</p>
+        </div>
+    </div>
+    
+    <div class="search-section">
+        <h3>🔍 Rechercher des prospects</h3>
+        <form id="search-form">
+            <input type="text" id="search-query" placeholder='Ex: "CEO Paris SaaS"' required>
+            <input type="number" id="max-results" value="20" min="5" max="50">
+            <button type="submit">Rechercher</button>
+        </form>
+        <div id="search-results"></div>
+    </div>
+    
+    <div class="recent-actions">
+        <h3>📝 Dernières actions</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Action</th>
+                    <th>Prospect</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for action in recent_actions %}
+                <tr>
+                    <td>{{ action.executed_at.strftime('%d/%m %H:%M') }}</td>
+                    <td>{{ action.action_type }}</td>
+                    <td>{{ action.prospect.full_name }}</td>
+                    <td class="status-{{ action.status }}">{{ action.status }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+```
+
+**Fichier: `web/templates/prospects.html`**
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+<div class="prospects-page">
+    <h2>👥 Prospects</h2>
+    
+    <div class="filters">
+        <a href="?status=all" class="{% if status_filter == 'all' %}active{% endif %}">Tous</a>
+        <a href="?status=new" class="{% if status_filter == 'new' %}active{% endif %}">Nouveaux</a>
+        <a href="?status=connected" class="{% if status_filter == 'connected' %}active{% endif %}">Connectés</a>
+        <a href="?status=messaged" class="{% if status_filter == 'messaged' %}active{% endif %}">Messagés</a>
+    </div>
+    
+    <table class="prospects-table">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Titre</th>
+                <th>Entreprise</th>
+                <th>Statut</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prospect in prospects %}
+            <tr>
+                <td>
+                    <a href="{{ prospect.linkedin_url }}" target="_blank">
+                        {{ prospect.full_name }}
+                    </a>
+                </td>
+                <td>{{ prospect.headline or '-' }}</td>
+                <td>{{ prospect.company or '-' }}</td>
+                <td><span class="badge badge-{{ prospect.status }}">{{ prospect.status }}</span></td>
+                <td>
+                    <button onclick="sendConnection({{ prospect.id }})">🤝 Connexion</button>
+                    <button onclick="sendMessage({{ prospect.id }})">💬 Message</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+```
+
+**Fichier: `web/templates/campaigns.html`**
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+<div class="campaigns-page">
+    <h2>🎯 Campagnes</h2>
+    
+    <button onclick="showCreateCampaign()">+ Nouvelle campagne</button>
+    
+    <div id="create-campaign-form" style="display:none;">
+        <h3>Créer une campagne</h3>
+        <form id="campaign-form">
+            <input type="text" name="name" placeholder="Nom de la campagne" required>
+            <input type="text" name="search_query" placeholder="Requête de recherche" required>
+            <textarea name="connection_message" placeholder="Message de connexion (optionnel)" rows="3"></textarea>
+            <textarea name="first_message" placeholder="Premier message après connexion" rows="3"></textarea>
+            <input type="number" name="daily_limit" value="10" min="1" max="50">
+            <button type="submit">Créer</button>
+        </form>
+    </div>
+    
+    <div class="campaigns-list">
+        {% for campaign in campaigns %}
+        <div class="campaign-card">
+            <h3>{{ campaign.name }}</h3>
+            <p><strong>Requête:</strong> {{ campaign.search_query }}</p>
+            <p><strong>Limite/jour:</strong> {{ campaign.daily_limit }}</p>
+            <p><strong>Statut:</strong> <span class="badge badge-{{ campaign.status }}">{{ campaign.status }}</span></p>
+            <button onclick="runCampaign({{ campaign.id }})">▶️ Lancer</button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+```
+
+### 5.3 Créer le CSS
+
+**Fichier: `web/static/css/style.css`**
+
+```css
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #333;
+}
+
+.navbar {
+    background: #0077b5;
+    color: white;
+    padding: 1rem 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar h1 {
+    font-size: 1.5rem;
+}
+
+.navbar ul {
+    display: flex;
+    list-style: none;
+    gap: 2rem;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.stat-card h3 {
+    font-size: 2rem;
+    color: #0077b5;
+    margin-bottom: 0.5rem;
+}
+
+.search-section, .recent-actions {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+form {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+input, textarea, button {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+input[type="text"], textarea {
+    flex: 1;
+}
+
+button {
+    background: #0077b5;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background: #005885;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background: #f8f8f8;
+    font-weight: 600;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.badge-new {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.badge-connected {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.badge-messaged {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.badge-active {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.status-success {
+    color: #388e3c;
+}
+
+.status-failed {
+    color: #d32f2f;
+}
+
+.filters {
+    margin-bottom: 1rem;
+}
+
+.filters a {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    background: #f5f5f5;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+}
+
+.filters a.active {
+    background: #0077b5;
+    color: white;
+}
+
+.campaigns-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.campaign-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+```
+
+### 5.4 Créer le JavaScript
+
+**Fichier: `web/static/js/main.js`**
+
+```javascript
+// Recherche de prospects
+document.getElementById('search-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const query = document.getElementById('search-query').value;
+    const maxResults = document.getElementById('max-results').value;
+    
+    const resultsDiv = document.getElementById('search-results');
+    resultsDiv.innerHTML = '<p>🔄 Recherche en cours...</p>';
+    
+    try {
+        const response = await fetch('/api/scrape', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, max_results: parseInt(maxResults) })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            resultsDiv.innerHTML = `
+                <p>✅ ${data.found} profils trouvés, ${data.added} nouveaux ajoutés</p>
+                <a href="/prospects">Voir les prospects →</a>
+            `;
+        }
+    } catch (error) {
+        resultsDiv.innerHTML = '<p>❌ Erreur lors de la recherche</p>';
+    }
+});
+
+// Envoyer demande de connexion
+async function sendConnection(prospectId) {
+    const message = prompt('Message personnalisé (optionnel, max 300 caractères):');
+    
+    if (message === null) return; // Annulé
+    
+    try {
+        const response = await fetch('/api/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prospect_id: prospectId, message: message || '' })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ Demande de connexion envoyée!');
+            location.reload();
+        } else {
+            alert('❌ Erreur lors de l\'envoi');
+        }
+    } catch (error) {
+        alert('❌ Erreur: ' + error.message);
+    }
+}
+
+// Envoyer message
+async function sendMessage(prospectId) {
+    const message = prompt('Message à envoyer:');
+    
+    if (!message) return;
+    
+    try {
+        const response = await fetch('/api/message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prospect_id: prospectId, message })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ Message envoyé!');
+            location.reload();
+        } else {
+            alert('❌ Erreur lors de l\'envoi');
+        }
+    } catch (error) {
+        alert('❌ Erreur: ' + error.message);
+    }
+}
+
+// Afficher formulaire création campagne
+function showCreateCampaign() {
+    document.getElementById('create-campaign-form').style.display = 'block';
+}
+
+// Créer campagne
+document.getElementById('campaign-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch('/api/campaign/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('✅ Campagne créée!');
+            location.reload();
+        }
+    } catch (error) {
+        alert('❌ Erreur: ' + error.message);
+    }
+});
+```
+
+## Livrables de Phase 5
+- [ ] Application Flask créée
+- [ ] Routes API fonctionnelles (/api/scrape, /api/connect, /api/message, etc.)
+- [ ] Templates HTML créés (Dashboard, Prospects, Campagnes)
+- [ ] CSS basique pour styling
+- [ ] JavaScript pour interactions
+- [ ] Interface utilisable dans le navigateur
