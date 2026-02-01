@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="settings-page" style="max-width: 800px; margin: 0 auto;">
+    <h2>⚙️ Settings</h2>
+
+    {% if saved %}
+    <div style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        ✅ Settings saved successfully!
+    </div>
+    {% endif %}
+
+    <div class="card"
+        style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <h3>🤖 AI Configuration</h3>
+        <p style="color: #666; margin-bottom: 20px;">
+            Customize the system prompt used by the AI to generate connection messages.
+        </p>
+
+        <form method="POST">
+            <div class="form-group">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px;">System Prompt / Template</label>
+                <p style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">
+                    Use placeholders: <code>{name}</code>, <code>{headline}</code>, <code>{summary}</code>,
+                    <code>{experience}</code>.
+                </p>
+                <textarea name="system_prompt" rows="12"
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; line-height: 1.4;">{{ system_prompt }}</textarea>
+            </div>
+
+            <div style="margin-top: 20px; text-align: right;">
+                <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

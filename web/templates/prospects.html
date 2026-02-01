@@ -428,20 +428,27 @@
 
 <!-- Scripts specific to Prospects page -->
 <script>
+    let currentAction = {};
+
     async function scheduleAction(id, type, btn) {
         if (btn.classList.contains('disabled')) return;
 
-        let messageContent = null;
-
         if (type === 'message') {
-            // Demander le contenu du message
-            messageContent = prompt("Enter your message for this prospect:", "Hello, I would like to connect...");
-            if (messageContent === null) return; // Annulé par l'utilisateur
-        } else {
-            // Pour connexion, simple confirmation
+            // Open Custom Modal for Message
+            currentAction = { id, type, btn };
+            openComposeModal();
+            return;
+        }
+
+        // Connection or other actions
+        if (type === 'connect') {
             if (!confirm("Send a connection request to this prospect?")) return;
         }
 
+        executeAction(id, type, null, btn);
+    }
+
+    async function executeAction(id, type, message, btn) {
         btn.classList.add('disabled');
         const originalText = btn.innerHTML;
         btn.innerHTML = '⏳ ...';
@@ -453,7 +460,7 @@
                 body: JSON.stringify({
                     prospect_id: id,
                     action_type: type,
-                    message: messageContent // Envoyer le message si présent
+                    message: message // Can be null
                 })
             });
             const data = await res.json();
@@ -490,6 +497,91 @@
             alert('Network Error');
         }
     }
+
+    // --- COMPOSE MODAL LOGIC ---
+    function openComposeModal() {
+        // Find default message?
+        document.getElementById('compose-msg').value = "Hello, I would like to connect...";
+        document.getElementById('compose-modal').style.display = 'flex';
+    }
+
+    function closeComposeModal() {
+        document.getElementById('compose-modal').style.display = 'none';
+        currentAction = {};
+    }
+
+    async function generateAI() {
+        if (!currentAction.id) return;
+        const btn = document.getElementById('btn-ai-gen');
+        const txtArea = document.getElementById('compose-msg');
+
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✨ Generating...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prospect_id: currentAction.id
+                })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                txtArea.value = data.message;
+            } else {
+                alert('AI Error: ' + data.error);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('AI Network Error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    function confirmSendMessage() {
+        const msg = document.getElementById('compose-msg').value;
+        if (!msg.trim()) {
+            alert("Please enter a message.");
+            return;
+        }
+        closeComposeModal();
+        executeAction(currentAction.id, currentAction.type, msg, currentAction.btn);
+    }
 </script>
+
+<!-- COMPOSE MESSAGE MODAL -->
+<div id="compose-modal" class="modal-overlay" onclick="if(event.target === this) closeComposeModal()">
+    <div class="modal-content" style="width: 500px;">
+        <div class="modal-header" style="justify-content: space-between; border-bottom: none; padding-bottom: 0;">
+            <h3>💬 Compose Message</h3>
+            <button class="close-modal" onclick="closeComposeModal()" style="position:static;">&times;</button>
+        </div>
+
+        <div style="padding: 10px 0;">
+            <div style="display:flex; justify-content: flex-end; margin-bottom: 10px;">
+                <button id="btn-ai-gen" onclick="generateAI()"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    ✨ AI Magic Writer
+                </button>
+            </div>
+
+            <textarea id="compose-msg" rows="8"
+                style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 0.95rem; resize: vertical; margin-bottom: 20px;"
+                placeholder="Type your message here..."></textarea>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button onclick="closeComposeModal()"
+                    style="background: #f1f3f4; color: #333; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500;">Cancel</button>
+                <button onclick="confirmSendMessage()" class="btn-primary" style="padding: 10px 25px;">Send
+                    Message</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 ```

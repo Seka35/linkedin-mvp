@@ -58,6 +58,7 @@ class Campaign(Base):
     
     # Configuration
     daily_limit = Column(Integer, default=10)
+    use_ai_customization = Column(Boolean, default=False)
     status = Column(String, default='active')  # active, paused, completed
     
     # Métadonnées
@@ -93,3 +94,12 @@ class Action(Base):
     # Relations
     prospect = relationship("Prospect", back_populates="actions")
     campaign = relationship("Campaign", back_populates="actions")
+
+class Settings(Base):
+    """Configuration globale de l'application"""
+    __tablename__ = 'settings'
+    
+    id = Column(Integer, primary_key=True)
+    key = Column(String, unique=True, nullable=False)
+    value = Column(Text)
+

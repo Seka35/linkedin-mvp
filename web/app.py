@@ -9,9 +9,10 @@ import os
 # Ajouter le dossier parent au path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from database import init_db, SessionLocal, Prospect, Campaign, Action
+from database import init_db, SessionLocal, Prospect, Campaign, Action, Settings
 from services.scraper import LinkedInScraper
 from services.linkedin_bot import LinkedInBot
+from services.ai_service import AIService
 from datetime import datetime
 
 app = Flask(__name__)
@@ -366,7 +367,8 @@ def api_create_campaign():
         connection_message=data.get('connection_message'),
         first_message=data.get('first_message'),
         message_delay_days=data.get('message_delay_days', 3),
-        daily_limit=data.get('daily_limit', 10)
+        daily_limit=data.get('daily_limit', 10),
+        use_ai_customization=data.get('use_ai_customization', False)
     )
     
     db.add(campaign)
@@ -534,6 +536,75 @@ def delete_campaign(campaign_id):
         db.close()
         
     return jsonify({'success': success})
+
+@app.route('/api/ai/generate', methods=['POST'])
+def api_ai_generate():
+    """API: Générer un message avec l'IA"""
+    data = request.json
+    prospect_id = data.get('prospect_id')
+    prompt_override = data.get('prompt')
+
+    db = SessionLocal()
+    prospect = db.query(Prospect).get(prospect_id)
+    
+    if not prospect:
+        db.close()
+        return jsonify({'success': False, 'error': 'Prospect not found'}), 404
+
+    # Récupérer le prompt système depuis les settings si pas d'override
+    if not prompt_override:
+        setting = db.query(Settings).filter(Settings.key == 'system_prompt').first()
+        if setting:
+            prompt_override = setting.value
+
+    db.close()
+
+    # Préparer les données pour le service IA
+    prospect_data = {
+        'name': prospect.full_name,
+        'headline': prospect.headline,
+        'summary': prospect.summary,
+        'experience': prospect.experiences,
+    }
+
+    ai_service = AIService()
+    generated_message = ai_service.generate_icebreaker(prospect_data, prompt_override)
+
+    if generated_message.startswith("Error"):
+        return jsonify({'success': False, 'error': generated_message}), 500
+
+    return jsonify({'success': True, 'message': generated_message})
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings_page():
+    """Page de configuration (Prompts, etc)"""
+    db = SessionLocal()
+
+    if request.method == 'POST':
+        # Sauvegarde
+        system_prompt = request.form.get('system_prompt')
+        
+        # Upsert
+        setting = db.query(Settings).filter(Settings.key == 'system_prompt').first()
+        if not setting:
+            setting = Settings(key='system_prompt')
+            db.add(setting)
+        
+        setting.value = system_prompt
+        db.commit()
+        db.close()
+        return redirect(url_for('settings_page', saved=1))
+
+    # Lecture
+    setting = db.query(Settings).filter(Settings.key == 'system_prompt').first()
+    current_prompt = setting.value if setting else ""
+    # Default prompt if empty
+    from services.ai_service import DEFAULT_PROMPT
+    if not current_prompt:
+        current_prompt = DEFAULT_PROMPT.strip()
+
+    db.close()
+    return render_template('settings.html', system_prompt=current_prompt, saved=request.args.get('saved'))
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -8,8 +8,9 @@ Usage:
 from dotenv import load_dotenv
 load_dotenv()
 
-from database import SessionLocal, Prospect, Campaign, Action
+from database import SessionLocal, Prospect, Campaign, Action, Settings
 from services.linkedin_bot import LinkedInBot
+from services.ai_service import AIService
 from datetime import datetime, timedelta
 import time
 import argparse
@@ -181,11 +182,36 @@ def send_messages(db, campaign):
             print(f"   [{i}/{len(prospects_to_message)}] {prospect.full_name}")
             
             # Personnaliser le message
-            message = campaign.first_message
-            message = message.replace('{name}', prospect.full_name.split()[0] if prospect.full_name else 'there')
-            message = message.replace('{full_name}', prospect.full_name or '')
-            message = message.replace('{company}', prospect.company or '')
-            message = message.replace('{title}', prospect.headline or '')
+            if campaign.use_ai_customization:
+                print("      ✨ Génération message AI...")
+                # Récupérer le prompt système
+                system_prompt_setting = db.query(Settings).filter(Settings.key == 'system_prompt').first()
+                system_prompt = system_prompt_setting.value if system_prompt_setting else None
+                
+                prospect_data = {
+                    'name': prospect.full_name,
+                    'headline': prospect.headline,
+                    'summary': prospect.summary,
+                    'experience': prospect.experiences,
+                }
+                
+                ai_service = AIService()
+                message = ai_service.generate_icebreaker(prospect_data, system_prompt)
+                
+                if message.startswith("Error"):
+                     print(f"      ⚠️ Erreur AI, fallback sur template classique: {message}")
+                     message = campaign.first_message
+                     message = message.replace('{name}', prospect.full_name.split()[0] if prospect.full_name else 'there')
+                     message = message.replace('{full_name}', prospect.full_name or '')
+                     message = message.replace('{company}', prospect.company or '')
+                     message = message.replace('{title}', prospect.headline or '')
+            else:
+                # Template classique
+                message = campaign.first_message
+                message = message.replace('{name}', prospect.full_name.split()[0] if prospect.full_name else 'there')
+                message = message.replace('{full_name}', prospect.full_name or '')
+                message = message.replace('{company}', prospect.company or '')
+                message = message.replace('{title}', prospect.headline or '')
             
             # Envoyer le message
             success = bot.send_message(prospect.linkedin_url, message)

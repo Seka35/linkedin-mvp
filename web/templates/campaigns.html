@@ -122,6 +122,13 @@
                 </div>
             </div>
 
+            <div style="background:#f8f9fa; padding:10px; border-radius:6px; display:flex; align-items:center;">
+                <input type="checkbox" name="use_ai_customization" id="use_ai" value="true"
+                    style="width:18px; height:18px; margin-right:10px; cursor:pointer;">
+                <label for="use_ai" style="cursor:pointer; font-weight:500; color:#444;">✨ Enable AI Personalization for
+                    messages</label>
+            </div>
+
             <div style="display:flex; gap:10px; margin-top:10px;">
                 <button type="submit" class="btn-primary">Create</button>
                 <button type="button" onclick="document.getElementById('create-campaign-form').style.display='none'"
@@ -142,6 +149,11 @@
                 <div>
                     <div style="display:flex; align-items:center; gap: 15px; margin-bottom: 8px;">
                         <h3 style="margin:0; font-size:1.4rem; color:#202124;">{{ campaign.name }}</h3>
+                        {% if campaign.use_ai_customization %}
+                        <span class="badge" title="AI Personalization Active"
+                            style="background:linear-gradient(135deg, #667eea, #764ba2); color:white; font-size: 0.75rem; text-transform:uppercase; letter-spacing:0.5px; border-radius:4px; padding:2px 8px;">✨
+                            AI ON</span>
+                        {% endif %}
                         <span class="badge badge-{{ campaign.status }}"
                             style="font-size: 0.75rem; text-transform:uppercase; letter-spacing:0.5px; border-radius:4px;">{{
                             campaign.status }}</span>
