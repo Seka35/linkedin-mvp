@@ -811,6 +811,9 @@ def update_account_settings():
         account.proxy_password = request.form.get('proxy_password')
         account.proxy_enabled = True if request.form.get('proxy_enabled') == 'on' else False
         account.user_agent = request.form.get('user_agent')
+        
+        # Reset status if cookie is updated (or just reset anyway to force retry)
+        account.cookie_status = 'valid'
     
     db.commit()
     db.refresh(account) 

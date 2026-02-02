@@ -26,7 +26,9 @@ class Account(Base):
     proxy_username = Column(String)
     proxy_password = Column(String)
     proxy_enabled = Column(Boolean, default=True)  # Toggle ON/OFF sans supprimer les infos
+    proxy_enabled = Column(Boolean, default=True)  # Toggle ON/OFF sans supprimer les infos
     user_agent = Column(String)  # Custom User-Agent per account
+    cookie_status = Column(String, default='valid') # 'valid', 'expired', 'unknown'
     
     # Configuration AI
     system_prompt = Column(Text)  # Prompt système spécifique au compte

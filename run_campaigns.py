@@ -102,9 +102,16 @@ def send_connections(db, campaign):
         headless=True
     )
     try:
-        bot.start()
-        print("   ✅ Bot démarré\n")
-        
+        if bot.start():
+            print("   ✅ Bot démarré\n")
+            account.cookie_status = 'valid'
+            db.commit()
+        else:
+            print("   ❌ Échec démarrage bot (Cookie invalide)")
+            account.cookie_status = 'expired'
+            db.commit()
+            return
+
         for i, prospect in enumerate(prospects, 1):
             print(f"   [{i}/{len(prospects)}] {prospect.full_name}")
             
@@ -138,7 +145,22 @@ def send_connections(db, campaign):
                 
                 print(f"      ✅ {status_code}")
             else:
-                print(f"      ❌ Échec")
+                print(f"      ❌ Échec (Marqué comme failed)")
+                # Mettre à jour le prospect pour ne pas retester à l'infini
+                prospect.status = 'failed' 
+                prospect.last_action_at = datetime.now()
+                
+                # Logger l'echec
+                action = Action(
+                    prospect_id=prospect.id,
+                    campaign_id=campaign.id,
+                    action_type='connect',
+                    status='failed',
+                    error_message=f"Bot returned False",
+                    executed_at=datetime.now()
+                )
+                db.add(action)
+                db.commit()
             
             # Délai aléatoire entre chaque action (30-120 secondes)
             if i < len(prospects):
@@ -207,8 +229,15 @@ def send_messages(db, campaign):
         headless=True
     )
     try:
-        bot.start()
-        print("   ✅ Bot démarré\n")
+        if bot.start():
+            print("   ✅ Bot démarré\n")
+            account.cookie_status = 'valid'
+            db.commit()
+        else:
+            print("   ❌ Échec démarrage bot (Cookie invalide)")
+            account.cookie_status = 'expired'
+            db.commit()
+            return
         
         for i, prospect in enumerate(prospects_to_message, 1):
             print(f"   [{i}/{len(prospects_to_message)}] {prospect.full_name}")
@@ -271,7 +300,26 @@ def send_messages(db, campaign):
                 
                 print(f"      ✅ Message envoyé")
             else:
-                print(f"      ❌ Échec")
+                print(f"      ❌ Échec envoi message")
+                # Marquer comme échoué temporairement ou définitivement
+                # On met 'failed' pour qu'il sorte de la liste "à messager"
+                # Ou on pourrait compter les retries. Pour l'instant: Failed.
+                # Mais attention, si on met status='failed', il ne sera plus 'connected', donc on perd l'info qu'il est connecté.
+                # On va dire que status reste 'connected' mais on log l'échec? 
+                # Non le user veut "failed sur le bouton".
+                prospect.status = 'failed_message' 
+                prospect.last_action_at = datetime.now()
+                
+                action = Action(
+                    prospect_id=prospect.id,
+                    campaign_id=campaign.id,
+                    action_type='message',
+                    status='failed',
+                    error_message="Bot returned False",
+                    executed_at=datetime.now()
+                )
+                db.add(action)
+                db.commit()
             
             # Délai aléatoire entre chaque message (60-180 secondes)
             if i < len(prospects_to_message):

@@ -42,7 +42,11 @@ class LinkedInScraper:
             }
             try:
                 response = requests.get(url, params=params, timeout=20)
+                response.raise_for_status() # Raise error for 4xx/5xx
                 data = response.json()
+                
+                if "error" in data:
+                     raise Exception(data["error"])
                 
                 linkedin_urls = []
                 if "organic_results" in data:
@@ -67,8 +71,51 @@ class LinkedInScraper:
 
             except Exception as e:
                 print(f"❌ Erreur SearchAPI.io: {e}")
-                # Fallback to direct scraping if API fails
                 pass
+        
+        # 2. Backup: SerpAPI (si configuré)
+        serp_api_backup_key = os.getenv('SERP_API_BACKUP_KEY')
+        if serp_api_backup_key:
+             print(f"⚠️ Switch vers SerpAPI (Backup)...")
+             try:
+                url_serp = "https://serpapi.com/search.json"
+                params_serp = {
+                    "engine": "google",
+                    "q": full_query,
+                    "api_key": serp_api_backup_key,
+                    "num": max_results
+                }
+                response = requests.get(url_serp, params=params_serp, timeout=20)
+                data = response.json()
+                
+                if "error" in data:
+                    print(f"❌ Erreur SerpAPI: {data['error']}")
+                else:
+                    linkedin_urls = []
+                    if "organic_results" in data:
+                        for result in data["organic_results"]:
+                            link = result.get("link", "")
+                            if "linkedin.com/in/" in link:
+                                linkedin_urls.append(link)
+                    
+                    unique_urls = list(set(linkedin_urls))[:max_results]
+                    results = []
+                    for url in unique_urls:
+                        username = url.split('/in/')[-1].rstrip('/')
+                        results.append({
+                            'linkedin_url': url,
+                            'full_name': self._extract_name_from_url(username),
+                            'source': 'serpapi_backup'
+                        })
+                    
+                    if results:
+                        print(f"✅ Trouvé {len(results)} profils via SerpAPI (Backup)")
+                        return results
+                    else:
+                        print("⚠️ SerpAPI: Aucun résultat trouvé")
+
+             except Exception as e:
+                 print(f"❌ Erreur SerpAPI Backup: {e}")
 
         # Fallback: DuckDuckGo HTML (plus permissif)
         url = f"https://html.duckduckgo.com/html/?q={encoded_query}"

@@ -47,6 +47,7 @@ body {
     font-size: 1.25rem;
     color: var(--primary-color);
     font-weight: 700;
+    margin-right: 2rem;
 }
 
 .navbar ul {

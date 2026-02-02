@@ -176,6 +176,14 @@
         cursor: default;
     }
 
+    /* Failed Logic */
+    .tile-failed {
+        border-color: #d32f2f;
+        color: #d32f2f;
+        background: #fce8e6;
+        cursor: pointer;
+    }
+
     /* Icons */
     .tile-icon {
         font-size: 1.1rem;
@@ -382,6 +390,11 @@
                         <div class="btn-tile tile-followed" title="Followed">
                             <div class="tile-icon">👤</div>
                             <div>Followed</div>
+                        </div>
+                        {% elif p.status == 'failed' or p.status == 'failed_connect' or p.status == 'failed_message' %}
+                        <div class="btn-tile tile-failed" title="Action Failed">
+                            <div class="tile-icon">❌</div>
+                            <div>Failed</div>
                         </div>
                         {% else %}
                         <!-- Action: Connect -->

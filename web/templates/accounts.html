@@ -45,6 +45,13 @@
                     {% if current_account.id == account.id %}
                     <span style="font-size: 0.8em; color: green; font-weight: bold; margin-left: 5px;">(Active)</span>
                     {% endif %}
+
+                    {% if account.cookie_status == 'expired' %}
+                    <span
+                        style="background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 5px; display: inline-flex; align-items: center; gap: 4px;">
+                        ⚠️ Cookie Expired
+                    </span>
+                    {% endif %}
                 </td>
                 <td>{{ account.email }}</td>
                 <td>
