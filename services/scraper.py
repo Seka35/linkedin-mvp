@@ -11,7 +11,11 @@ from urllib.parse import quote_plus
 import time
 import random
 import re
+from dotenv import load_dotenv
 from database import get_db, Prospect
+
+# Charger les variables d'environnement
+load_dotenv()
 
 class LinkedInScraper:
     """Scraper LinkedIn utilisant Google SERP et Apify"""
