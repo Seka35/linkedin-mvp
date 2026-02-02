@@ -1,12 +1,20 @@
 version: '3.8'
 
+networks:
+  default:
+    driver: bridge
+  traefik-network:
+    external: true
+    name: root_default
+
 services:
   app:
     build: .
     container_name: linkedin_bot_app
     restart: unless-stopped
-    ports:
-      - "5000:5000"
+    # Port exposure removed - Traefik handles it
+    expose:
+      - "5000"
     volumes:
       # Persist the database and other data
       - ./data:/app/data
@@ -14,10 +22,28 @@ services:
       - ./logs:/app/logs
       # Optional: Map source code for development (remove for prod if preferred)
       # - .:/app
+      # IMPORTANT: Ensure timezone is correct for Cron
+      # You might need to adjust this depending on your VPS location/need
     environment:
       - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
-    # IMPORTANT: Ensure timezone is correct for Cron
-    # You might need to adjust this depending on your VPS location/need
-    environment:
       - TZ=Europe/Paris
+    # Traefik labels for reverse proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.linkedin.rule=Host(`linkedin.tbisla.pro`)"
+      - "traefik.http.routers.linkedin.tls=true"
+      - "traefik.http.routers.linkedin.entrypoints=web,websecure"
+      - "traefik.http.routers.linkedin.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.linkedin.loadbalancer.server.port=5000"
+      - "traefik.http.middlewares.linkedin.headers.SSLRedirect=true"
+      - "traefik.http.middlewares.linkedin.headers.STSSeconds=315360000"
+      - "traefik.http.middlewares.linkedin.headers.browserXSSFilter=true"
+      - "traefik.http.middlewares.linkedin.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.linkedin.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.linkedin.headers.STSIncludeSubdomains=true"
+      - "traefik.http.middlewares.linkedin.headers.STSPreload=true"
+      - "traefik.http.routers.linkedin.middlewares=linkedin@docker"
+    networks:
+      - default
+      - traefik-network
