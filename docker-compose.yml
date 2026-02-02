@@ -1,8 +1,6 @@
 version: '3.8'
 
 networks:
-  default:
-    driver: bridge
   traefik-network:
     external: true
     name: root_default
@@ -47,5 +45,4 @@ services:
       - "traefik.http.middlewares.linkedin.headers.STSPreload=true"
       - "traefik.http.routers.linkedin.middlewares=linkedin@docker"
     networks:
-      - default
       - traefik-network
