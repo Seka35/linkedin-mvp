@@ -59,13 +59,15 @@ class LinkedInScraper:
                         if "linkedin.com/in/" in link:
                             linkedin_urls.append(link)
                 
-                # Dédupliquer
+                # Dédupliquer et nettoyer les URLs
                 unique_urls = list(set(linkedin_urls))[:max_results]
                 results = []
                 for url in unique_urls:
-                    username = url.split('/in/')[-1].rstrip('/')
+                    # Nettoyer l'URL (supprimer /en, /es, etc.)
+                    clean_url = self._clean_linkedin_url(url)
+                    username = clean_url.split('/in/')[-1].rstrip('/')
                     results.append({
-                        'linkedin_url': url,
+                        'linkedin_url': clean_url,
                         'full_name': self._extract_name_from_url(username),
                         'source': 'searchapi_io'
                     })
@@ -106,9 +108,11 @@ class LinkedInScraper:
                     unique_urls = list(set(linkedin_urls))[:max_results]
                     results = []
                     for url in unique_urls:
-                        username = url.split('/in/')[-1].rstrip('/')
+                        # Nettoyer l'URL
+                        clean_url = self._clean_linkedin_url(url)
+                        username = clean_url.split('/in/')[-1].rstrip('/')
                         results.append({
-                            'linkedin_url': url,
+                            'linkedin_url': clean_url,
                             'full_name': self._extract_name_from_url(username),
                             'source': 'serpapi_backup'
                         })
@@ -145,11 +149,13 @@ class LinkedInScraper:
             
             results = []
             for url in unique_urls:
+                # Nettoyer l'URL
+                clean_url = self._clean_linkedin_url(url)
                 # Extraire username du profil
-                username = url.split('/in/')[-1].rstrip('/')
+                username = clean_url.split('/in/')[-1].rstrip('/')
                 
                 results.append({
-                    'linkedin_url': url,
+                    'linkedin_url': clean_url,
                     'full_name': self._extract_name_from_url(username),
                     'source': 'google_serp'
                 })
@@ -199,6 +205,17 @@ class LinkedInScraper:
         except Exception as e:
             print(f"❌ Erreur Apify: {e}")
             return []
+    
+    
+    def _clean_linkedin_url(self, url: str) -> str:
+        """Nettoyer l'URL LinkedIn en supprimant les suffixes de langue (/en, /es, /fr, etc.)"""
+        import re
+        # Supprimer les suffixes de langue courants
+        # Pattern: /en, /fr, /es, /de, /pt, /it, /nl, /pl, /ru, /ja, /zh-cn, /zh-tw, etc.
+        url = re.sub(r'/(en|fr|es|de|pt|it|nl|pl|ru|ja|ko|zh-cn|zh-tw|ar|tr|sv|da|no|fi)/?$', '', url, flags=re.IGNORECASE)
+        # S'assurer qu'il n'y a pas de slash final
+        url = url.rstrip('/')
+        return url
     
     def _extract_name_from_url(self, username: str) -> str:
         """Extraire un nom lisible depuis un username LinkedIn"""
