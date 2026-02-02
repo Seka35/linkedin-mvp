@@ -71,7 +71,8 @@ class LinkedInScraper:
 
             except Exception as e:
                 print(f"❌ Erreur SearchAPI.io: {e}")
-                pass
+                import traceback
+                traceback.print_exc()
         
         # 2. Backup: SerpAPI (si configuré)
         serp_api_backup_key = os.getenv('SERP_API_BACKUP_KEY')
