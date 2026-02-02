@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content-header">
+    <h2>Manage Accounts</h2>
+</div>
+
+<div class="card">
+    <h3>Add New Account</h3>
+    <form action="/accounts/create" method="POST" style="display: flex; gap: 10px; align-items: flex-end;">
+        <div class="form-group" style="flex: 1;">
+            <label>Name</label>
+            <input type="text" name="name" placeholder="e.g. John Professional" required style="width: 100%;">
+        </div>
+        <div class="form-group" style="flex: 1;">
+            <label>Email</label>
+            <input type="email" name="email" placeholder="john@linkedin.com" required style="width: 100%;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-bottom: 2px;">Add Account</button>
+    </form>
+    {% if request.args.get('error') %}
+    <p style="color: red; margin-top: 10px;">Error: {{ request.args.get('error') }}</p>
+    {% endif %}
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <h3>Existing Accounts</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Created At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for account in accounts %}
+            <tr {% if current_account.id==account.id %}style="background-color: #f0f7ff;" {% endif %}>
+                <td>#{{ account.id }}</td>
+                <td>
+                    <b>{{ account.name }}</b>
+                    {% if current_account.id == account.id %}
+                    <span style="font-size: 0.8em; color: green; font-weight: bold; margin-left: 5px;">(Active)</span>
+                    {% endif %}
+                </td>
+                <td>{{ account.email }}</td>
+                <td>
+                    {% if account.is_active %}
+                    <span class="status-badge status-connected">Active</span>
+                    {% else %}
+                    <span class="status-badge">Inactive</span>
+                    {% endif %}
+                </td>
+                <td>{{ account.created_at.strftime('%Y-%m-%d') if account.created_at else '-' }}</td>
+                <td>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        {% if current_account.id != account.id %}
+                        <form action="/accounts/switch" method="POST" style="margin:0;">
+                            <input type="hidden" name="account_id" value="{{ account.id }}">
+                            <button type="submit" class="btn-tile"
+                                style="height: 40px; padding: 0 15px; border-radius: 8px; background: #e3f2fd; color: #1976d2; border: 1px solid #1976d2; font-weight: 600; width: 100px;"
+                                title="Switch to this account">
+                                Switch
+                            </button>
+                        </form>
+                        {% else %}
+                        <button disabled class="btn-tile"
+                            style="height: 40px; padding: 0 15px; border-radius: 8px; opacity: 0.6; cursor: default; background: #f5f5f5; color: #555; border: 1px solid #ccc; font-weight: 600; width: 100px;"
+                            title="Current Account">
+                            Current
+                        </button>
+                        {% endif %}
+
+                        <!-- Rename Button -->
+                        <button type="button" class="btn-tile"
+                            style="width: 40px; height: 40px; border-radius: 8px; border: 1px solid #ffc107; background: #fff8e1; color: #ff8f00;"
+                            title="Rename Account" onclick="promptRename('{{ account.id }}', '{{ account.name }}')">
+                            <div class="tile-icon" style="margin:0; font-size: 1.2rem;">✏️</div>
+                        </button>
+
+                        <!-- Delete Button -->
+                        <form action="/accounts/delete" method="POST" style="margin:0;"
+                            onsubmit="return confirm('⚠️ Êtes-vous sûr de vouloir SUPPRIMER le compte {{ account.name }} ?\n\nToutes les données associées (prospects, campagnes) seront effacées définitivement.');">
+                            <input type="hidden" name="account_id" value="{{ account.id }}">
+                            <button type="submit" class="btn-delete"
+                                style="width: 40px; height: 40px; background: #fff0f1; color: #d32f2f; border: 1px solid #ffcdd2; display: flex; align-items: center; justify-content: center; border-radius: 8px;"
+                                title="Delete Account">
+                                <span style="font-size: 1.2rem;">🗑️</span>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Rename Modal Hidden Form -->
+<form id="renameForm" action="/accounts/rename" method="POST" style="display:none;">
+    <input type="hidden" name="account_id" id="renameAccountId">
+    <input type="hidden" name="name" id="renameAccountName">
+</form>
+
+<script>
+    function promptRename(id, oldName) {
+        const newName = prompt("Nouveau nom pour ce compte :", oldName);
+        if (newName && newName !== oldName) {
+            document.getElementById('renameAccountId').value = id;
+            document.getElementById('renameAccountName').value = newName;
+            document.getElementById('renameForm').submit();
+        }
+    }
+</script>
+</tbody>
+</table>
+</div>
+
+<style>
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .btn-small {
+        padding: 5px 10px;
+        font-size: 0.85rem;
+    }
+
+    /* Tile Button Styles borrowed from Prospects */
+    .btn-tile {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-tile:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-delete {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-radius: 50%;
+    }
+
+    .btn-delete:hover {
+        background: #ffcdd2 !important;
+        transform: scale(1.1);
+    }
+</style>
+{% endblock %}

@@ -15,10 +15,15 @@ from .proxy_manager import ProxyManager
 class LinkedInBot:
     """Bot d'automatisation LinkedIn avec authentification cookie"""
     
-    def __init__(self, headless: bool = True):
-        self.li_at_cookie = os.getenv('LINKEDIN_LI_AT_COOKIE')
+    def __init__(self, li_at_cookie=None, proxy_config: dict=None, user_agent: str=None, headless: bool = True):
+        # Priorité aux arguments passés, sinon .env (fallback)
+        self.li_at_cookie = li_at_cookie or os.getenv('LINKEDIN_LI_AT_COOKIE')
         self.headless = headless
-        self.proxy_manager = ProxyManager()
+        self.proxy_manager = ProxyManager() # Note: ProxyManager might need update too if it relies solely on env
+        self.user_agent = user_agent
+        
+        # Override proxy configuration if provided
+        self.manual_proxy_config = proxy_config
         
         self.playwright = None
         self.browser = None
@@ -32,16 +37,20 @@ class LinkedInBot:
     def start(self):
         """Démarrer le navigateur avec cookie de session"""
         if not self.li_at_cookie:
-             raise ValueError("❌ LINKEDIN_LI_AT_COOKIE non configuré dans .env")
+             raise ValueError("❌ LINKEDIN_LI_AT_COOKIE non configuré")
 
         print("🚀 Démarrage du bot LinkedIn (mode cookie)...")
         
         self.playwright = sync_playwright().start()
         
         # Configuration proxy
-        proxy_config = self.proxy_manager.get_proxy_config()
-        if proxy_config:
-            print(f"🔒 Utilisation du proxy: {proxy_config['server']}")
+        if self.manual_proxy_config:
+             proxy_config = self.manual_proxy_config
+             print(f"🔒 Utilisation du proxy manuel: {proxy_config['server']}")
+        else:
+             proxy_config = self.proxy_manager.get_proxy_config()
+             if proxy_config:
+                 print(f"🔒 Utilisation du proxy (env): {proxy_config['server']}")
         
         # Lancer navigateur
         self.browser = self.playwright.chromium.launch(
@@ -50,11 +59,14 @@ class LinkedInBot:
             args=['--disable-blink-features=AutomationControlled'] # Tentative d'évitement détection
         )
         
+        # Utiliser l'UA custom ou le fallback par défaut
+        ua = self.user_agent or 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0'
+        
         # Créer contexte avec fingerprinting basique
         self.context = self.browser.new_context(
             viewport={'width': 1920, 'height': 1080},
             # UA fourni par l'utilisateur (Firefox Linux) pour matcher le cookie
-            user_agent='Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0',
+            user_agent=ua,
             locale='fr-FR',
             timezone_id='Europe/Paris'
         )

@@ -9,7 +9,7 @@ import os
 # Ajouter le dossier parent au path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from database import init_db, SessionLocal, Prospect, Campaign, Action, Settings
+from database import init_db, SessionLocal, Prospect, Campaign, Action, Settings, Account
 from services.scraper import LinkedInScraper
 from services.linkedin_bot import LinkedInBot
 from services.ai_service import AIService
@@ -40,6 +40,39 @@ scraper = LinkedInScraper()
 # Instance globale du bot (sera initialisée à la demande)
 bot = None
 
+from flask import g, session
+
+@app.before_request
+def load_account():
+    """Charger le compte actif pour la requête"""
+    if request.endpoint and 'static' in request.endpoint:
+        return
+        
+    db = SessionLocal()
+    account_id = session.get('account_id')
+    
+    if account_id:
+        g.account = db.query(Account).get(account_id)
+    
+    # Si pas de compte en session ou compte invalide, charger le par défaut (ID 1)
+    if not hasattr(g, 'account') or not g.account:
+        g.account = db.query(Account).order_by(Account.id).first()
+        if g.account:
+            session['account_id'] = g.account.id
+            
+    db.close()
+
+@app.context_processor
+def inject_account():
+    """Injecter le compte actuel et la liste des comptes dans tous les templates"""
+    def get_all_accounts():
+        db = SessionLocal()
+        accounts = db.query(Account).all()
+        db.close()
+        return accounts
+        
+    return dict(current_account=getattr(g, 'account', None), get_all_accounts=get_all_accounts)
+
 from sqlalchemy.orm import joinedload
 
 @app.route('/')
@@ -47,14 +80,17 @@ def index():
     """Page d'accueil avec stats"""
     db = SessionLocal()
     
-    total_prospects = db.query(Prospect).count()
-    new_prospects = db.query(Prospect).filter(Prospect.status == 'new').count()
-    connected = db.query(Prospect).filter(Prospect.status == 'connected').count()
-    followed = db.query(Prospect).filter(Prospect.status == 'followed').count()
-    messaged = db.query(Action).filter(Action.action_type == 'message', Action.status == 'success').distinct(Action.prospect_id).count()
+    account_id = g.account.id if g.account else 0
+    
+    total_prospects = db.query(Prospect).filter(Prospect.account_id == account_id).count()
+    new_prospects = db.query(Prospect).filter(Prospect.account_id == account_id, Prospect.status == 'new').count()
+    connected = db.query(Prospect).filter(Prospect.account_id == account_id, Prospect.status == 'connected').count()
+    followed = db.query(Prospect).filter(Prospect.account_id == account_id, Prospect.status == 'followed').count()
+    messaged = db.query(Action).join(Prospect).filter(Prospect.account_id == account_id, Action.action_type == 'message', Action.status == 'success').distinct(Action.prospect_id).count()
     
     # Eager load 'prospect' to avoid DetachedInstanceError after db.close()
-    recent_actions = db.query(Action).options(joinedload(Action.prospect)).order_by(Action.executed_at.desc()).limit(10).all()
+    # Eager load 'prospect' to avoid DetachedInstanceError after db.close()
+    recent_actions = db.query(Action).join(Prospect).filter(Prospect.account_id == account_id).options(joinedload(Action.prospect)).order_by(Action.executed_at.desc()).limit(10).all()
     
     db.close()
     
@@ -78,7 +114,8 @@ def prospects():
     # Filtrage spécial pour "messaged" : tous ceux qui ont reçu au moins 1 message
     if status_filter == 'messaged':
         # Récupérer les IDs des prospects qui ont reçu au moins 1 message
-        prospect_ids_with_messages = db.query(Action.prospect_id).filter(
+        prospect_ids_with_messages = db.query(Action.prospect_id).join(Prospect).filter(
+            Prospect.account_id == g.account.id,
             Action.action_type == 'message',
             Action.status == 'success'
         ).distinct().all()
@@ -93,7 +130,7 @@ def prospects():
             prospects_list = []
     else:
         # Filtrage normal par statut
-        query = db.query(Prospect)
+        query = db.query(Prospect).filter(Prospect.account_id == g.account.id)
         if status_filter != 'all':
             query = query.filter(Prospect.status == status_filter)
         prospects_list = query.order_by(Prospect.added_at.desc()).all()
@@ -108,12 +145,14 @@ def prospects():
         prospect.message_count = message_count
     
     # Calculer les compteurs pour chaque filtre
+    account_id = g.account.id
     counts = {
-        'all': db.query(Prospect).count(),
-        'new': db.query(Prospect).filter(Prospect.status == 'new').count(),
-        'connected': db.query(Prospect).filter(Prospect.status == 'connected').count(),
-        'followed': db.query(Prospect).filter(Prospect.status == 'followed').count(),
-        'messaged': db.query(Action).filter(
+        'all': db.query(Prospect).filter(Prospect.account_id == account_id).count(),
+        'new': db.query(Prospect).filter(Prospect.account_id == account_id, Prospect.status == 'new').count(),
+        'connected': db.query(Prospect).filter(Prospect.account_id == account_id, Prospect.status == 'connected').count(),
+        'followed': db.query(Prospect).filter(Prospect.account_id == account_id, Prospect.status == 'followed').count(),
+        'messaged': db.query(Action).join(Prospect).filter(
+            Prospect.account_id == account_id,
             Action.action_type == 'message',
             Action.status == 'success'
         ).distinct(Action.prospect_id).count()
@@ -146,7 +185,7 @@ def campaigns():
     """Page liste des campagnes"""
     db = SessionLocal()
     
-    campaigns_list = db.query(Campaign).order_by(Campaign.created_at.desc()).all()
+    campaigns_list = db.query(Campaign).filter(Campaign.account_id == g.account.id).order_by(Campaign.created_at.desc()).all()
     
     # Calculer les stats pour chaque campagne
     for campaign in campaigns_list:
@@ -177,7 +216,9 @@ def messages():
     db = SessionLocal()
     
     # Récupérer toutes les actions de type 'message' avec eager loading du prospect
-    messages_list = db.query(Action).options(joinedload(Action.prospect)).filter(
+    # Récupérer toutes les actions de type 'message' avec eager loading du prospect
+    messages_list = db.query(Action).join(Prospect).options(joinedload(Action.prospect)).filter(
+        Prospect.account_id == g.account.id,
         Action.action_type == 'message'
     ).order_by(Action.executed_at.desc()).all()
     
@@ -200,8 +241,8 @@ def api_scrape():
         return jsonify({'error': 'Query required'}), 400
     
     # Scraper
-    print(f"🌍 API Scrape request: {query}")
-    results = scraper.search_prospects(query, use_apify, max_results)
+    print(f"🌍 API Scrape request: {query} (Account: {g.account.id})")
+    results = scraper.search_prospects(query, use_apify, max_results, account_id=g.account.id)
     
     # Sauvegarder en DB (déjà géré dans search_prospects, mais utile pour stats retour)
     # On sait que scraper.search_prospects retourne la liste trouvée et sauvegarde.
@@ -245,7 +286,22 @@ def api_connect():
     print("🔄 Démarrage d'une session bot fraîche...")
     fresh_bot = None
     try:
-        fresh_bot = LinkedInBot(headless=False)
+        # Configuration Proxy depuis le compte
+        # Configuration Proxy depuis le compte (seulement si activé)
+        proxy_config = None
+        if g.account.proxy_url and g.account.proxy_enabled:
+            proxy_config = {
+                'server': g.account.proxy_url,
+                'username': g.account.proxy_username,
+                'password': g.account.proxy_password
+            }
+
+        fresh_bot = LinkedInBot(
+            li_at_cookie=g.account.li_at_cookie, 
+            proxy_config=proxy_config,
+            user_agent=g.account.user_agent,
+            headless=False
+        )
         fresh_bot.start()
         
         # Envoyer demande de connexion
@@ -315,7 +371,22 @@ def api_message():
     print("🔄 Démarrage d'une session bot fraîche...")
     fresh_bot = None
     try:
-        fresh_bot = LinkedInBot(headless=False)
+        # Configuration Proxy depuis le compte
+        # Configuration Proxy depuis le compte (seulement si activé)
+        proxy_config = None
+        if g.account.proxy_url and g.account.proxy_enabled:
+            proxy_config = {
+                'server': g.account.proxy_url,
+                'username': g.account.proxy_username,
+                'password': g.account.proxy_password
+            }
+
+        fresh_bot = LinkedInBot(
+            li_at_cookie=g.account.li_at_cookie,
+            proxy_config=proxy_config,
+            user_agent=g.account.user_agent,
+            headless=False
+        )
         fresh_bot.start()
         
         # Envoyer message
@@ -363,6 +434,7 @@ def api_create_campaign():
     
     campaign = Campaign(
         name=data.get('name'),
+        account_id=g.account.id,
         search_query=data.get('search_query'),
         connection_message=data.get('connection_message'),
         first_message=data.get('first_message'),
@@ -551,11 +623,15 @@ def api_ai_generate():
         db.close()
         return jsonify({'success': False, 'error': 'Prospect not found'}), 404
 
-    # Récupérer le prompt système depuis les settings si pas d'override
+    # Récupérer le prompt système depuis le compte, ou global si vide
     if not prompt_override:
-        setting = db.query(Settings).filter(Settings.key == 'system_prompt').first()
-        if setting:
-            prompt_override = setting.value
+        if hasattr(g, 'account') and g.account and g.account.system_prompt:
+             prompt_override = g.account.system_prompt
+        
+        if not prompt_override:
+            setting = db.query(Settings).filter(Settings.key == 'system_prompt').first()
+            if setting:
+                prompt_override = setting.value
 
     db.close()
 
@@ -605,6 +681,147 @@ def settings_page():
 
     db.close()
     return render_template('settings.html', system_prompt=current_prompt, saved=request.args.get('saved'))
+
+@app.route('/accounts')
+def accounts_list():
+    """Page de gestion des comptes"""
+    db = SessionLocal()
+    accounts = db.query(Account).all()
+    db.close()
+    return render_template('accounts.html', accounts=accounts)
+
+@app.route('/accounts/switch', methods=['POST'])
+def switch_account():
+    """Changer de compte"""
+    account_id = request.form.get('account_id')
+    if account_id:
+        session['account_id'] = int(account_id)
+    return redirect(request.referrer or url_for('index'))
+
+@app.route('/accounts/create', methods=['POST'])
+def create_account():
+    """Créer un nouveau compte"""
+    name = request.form.get('name')
+    email = request.form.get('email')
+    
+    if not name or not email:
+        return redirect(url_for('accounts_list', error="Champs requis manquants"))
+        
+    db = SessionLocal()
+    try:
+        new_account = Account(
+            name=name,
+            email=email,
+            created_at=datetime.utcnow()
+        )
+        db.add(new_account)
+        db.commit()
+        session['account_id'] = new_account.id
+    except Exception as e:
+        print(f"Error creating account: {e}")
+        return redirect(url_for('accounts_list', error="Erreur création compte"))
+    finally:
+        db.close()
+        
+    return redirect(url_for('accounts_list'))
+
+@app.route('/accounts/rename', methods=['POST'])
+def rename_account():
+    """Renommer un compte"""
+    account_id = request.form.get('account_id')
+    new_name = request.form.get('name')
+    
+    if not account_id or not new_name:
+         return redirect(url_for('accounts_list', error="Champs manquants"))
+
+    db = SessionLocal()
+    account = db.query(Account).get(account_id)
+    if account:
+        account.name = new_name
+        db.commit()
+    db.close()
+    
+    return redirect(url_for('accounts_list'))
+
+@app.route('/accounts/delete', methods=['POST'])
+def delete_account():
+    """Supprimer un compte et ses données associées"""
+    account_id = request.form.get('account_id')
+    
+    if not account_id:
+        return redirect(url_for('accounts_list', error="ID manquant"))
+        
+    db = SessionLocal()
+    account = db.query(Account).get(account_id)
+    
+    if not account:
+        db.close()
+        return redirect(url_for('accounts_list', error="Compte introuvable"))
+        
+    # Empêcher la suppression du dernier compte s'il n'en reste qu'un? 
+    # Ou juste s'assurer qu'on switch vers un autre après.
+    
+    try:
+        # Cascade delete manuel si pas géré par SQLAlchemy
+        # Supprimer Actions
+        db.query(Action).join(Prospect).filter(Prospect.account_id == account.id).delete(synchronize_session=False)
+        # Supprimer Prospects
+        db.query(Prospect).filter(Prospect.account_id == account.id).delete(synchronize_session=False)
+        # Supprimer Campagnes
+        db.query(Campaign).filter(Campaign.account_id == account.id).delete(synchronize_session=False)
+        
+        # Supprimer le compte
+        db.delete(account)
+        db.commit()
+        
+        # Si c'était le compte actif, changer
+        if session.get('account_id') == int(account_id):
+            remaining = db.query(Account).first()
+            if remaining:
+                session['account_id'] = remaining.id
+            else:
+                session.pop('account_id', None)
+                
+    except Exception as e:
+        print(f"❌ Erreur suppression compte: {e}")
+        db.rollback()
+        return redirect(url_for('accounts_list', error="Erreur suppression"))
+    finally:
+        db.close()
+        
+    return redirect(url_for('accounts_list'))
+
+@app.route('/settings/account', methods=['POST'])
+def update_account_settings():
+    """Mettre à jour les paramètres spécifiques au compte"""
+    if not hasattr(g, 'account') or not g.account:
+        return redirect(url_for('index', error="Aucun compte sélectionné"))
+        
+    db = SessionLocal()
+    account = db.query(Account).get(g.account.id)
+    
+    if request.form.get('update_prompt'):
+        # Mise à jour du prompt système uniquement
+        account.system_prompt = request.form.get('system_prompt')
+    else:
+        # Mise à jour credentials/proxy
+        account.li_at_cookie = request.form.get('li_at_cookie')
+        account.proxy_url = request.form.get('proxy_url')
+        account.proxy_username = request.form.get('proxy_username')
+        account.proxy_password = request.form.get('proxy_password')
+        account.proxy_enabled = True if request.form.get('proxy_enabled') == 'on' else False
+        account.user_agent = request.form.get('user_agent')
+    
+    db.commit()
+    db.refresh(account) 
+    db.close()
+    
+    return redirect(url_for('settings_page', saved='account'))
+                         
+def get_system_prompt_global(db):
+    """Helper pour récupérer le prompt global"""
+    setting = db.query(Settings).filter(Settings.key == 'system_prompt').first()
+    return setting.value if setting else ""
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

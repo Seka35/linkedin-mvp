@@ -22,6 +22,26 @@
                 <a href="/campaigns" class="nav-link">Campaigns</a>
                 <a href="/settings" class="nav-link">Settings</a>
             </ul>
+
+            <!-- Account Switcher -->
+            <div class="account-switcher" style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                {% if current_account %}
+                <form action="/accounts/switch" method="POST" id="account-switch-form" style="margin:0;">
+                    <select name="account_id" onchange="this.form.submit()"
+                        style="padding: 5px; border-radius: 4px; border: 1px solid #ccc; background: white; color: #333;">
+                        <option value="" disabled>Switch Account</option>
+                        {% for acc in get_all_accounts() %}
+                        <option value="{{ acc.id }}" {% if current_account.id==acc.id %}selected{% endif %}>
+                            {{ acc.name or acc.email }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </form>
+                {% endif %}
+                <a href="/accounts" class="nav-link"
+                    style="font-size: 0.9em; padding: 5px 10px; background: rgba(255,255,255,0.1); border-radius: 4px;">Manage
+                    Accounts</a>
+            </div>
         </div>
     </nav>
 

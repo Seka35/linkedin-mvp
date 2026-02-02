@@ -154,7 +154,7 @@ class LinkedInScraper:
         name = username.replace('-', ' ').title()
         return name
     
-    def search_prospects(self, query: str, use_apify: bool = False, max_results: int = 20) -> List[Dict]:
+    def search_prospects(self, query: str, use_apify: bool = False, max_results: int = 20, account_id: int = None) -> List[Dict]:
         """
         Méthode principale de recherche et sauvegarde.
         """
@@ -170,18 +170,28 @@ class LinkedInScraper:
             pass
         
         # 3. Sauvegarder en BDD
-        self._save_to_db(results)
+        self._save_to_db(results, account_id)
         
         return results
 
-    def _save_to_db(self, prospects_data: List[Dict]):
+    def _save_to_db(self, prospects_data: List[Dict], account_id: int = None):
         """Sauvegarder les prospects trouvés en base de données"""
         db = next(get_db())
         try:
             count = 0
             for data in prospects_data:
-                # Vérifier si existe déjà
-                existing = db.query(Prospect).filter_by(linkedin_url=data['linkedin_url']).first()
+                # Vérifier si existe déjà (Scope Global ou par Compte ?)
+                # Pour l'instant, check global par URL pour éviter doublons, 
+                # OU check par compte si on veut autoriser le même prospect sur plusieurs comptes.
+                # ACTUELLEMENT: check global par linkedin_url (car pas de composite unique constraint facile en SQLite sans migration complexe)
+                # FIX: Check si existe DANS CE COMPTE
+                
+                query = db.query(Prospect).filter(Prospect.linkedin_url == data['linkedin_url'])
+                if account_id:
+                    query = query.filter(Prospect.account_id == account_id)
+                
+                existing = query.first()
+                
                 if not existing:
                     prospect = Prospect(
                         linkedin_url=data['linkedin_url'],
@@ -191,14 +201,15 @@ class LinkedInScraper:
                         location=data.get('location'),
                         profile_picture=data.get('profile_picture'),
                         source=data.get('source', 'manual'),
-                        status='new'
+                        status='new',
+                        account_id=account_id
                     )
                     db.add(prospect)
                     count += 1
             
             db.commit()
             if count > 0:
-                print(f"💾 {count} nouveaux prospects sauvegardés en BDD")
+                print(f"💾 {count} nouveaux prospects sauvegardés en BDD (Account {account_id})")
             else:
                 print("💾 Aucun nouveau prospect à sauvegarder (doublons)")
                 

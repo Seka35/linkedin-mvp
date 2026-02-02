@@ -84,7 +84,23 @@ def send_connections(db, campaign):
     print(f"   📋 {len(prospects)} prospect(s) à contacter")
     
     # Démarrer le bot
-    bot = LinkedInBot(headless=True)
+    # Démarrer le bot avec le contexte du compte associé à la campagne
+    account = campaign.account
+    proxy_config = None
+    proxy_config = None
+    if account.proxy_url and account.proxy_enabled:
+        proxy_config = {
+            'server': account.proxy_url,
+            'username': account.proxy_username,
+            'password': account.proxy_password
+        }
+
+    bot = LinkedInBot(
+        li_at_cookie=account.li_at_cookie,
+        proxy_config=proxy_config,
+        user_agent=account.user_agent,
+        headless=True
+    )
     try:
         bot.start()
         print("   ✅ Bot démarré\n")
@@ -173,7 +189,23 @@ def send_messages(db, campaign):
     prospects_to_message = prospects_to_message[:campaign.daily_limit]
     
     # Démarrer le bot
-    bot = LinkedInBot(headless=True)
+    # Démarrer le bot avec le contexte du compte associé à la campagne
+    account = campaign.account
+    proxy_config = None
+    proxy_config = None
+    if account.proxy_url and account.proxy_enabled:
+        proxy_config = {
+            'server': account.proxy_url,
+            'username': account.proxy_username,
+            'password': account.proxy_password
+        }
+
+    bot = LinkedInBot(
+        li_at_cookie=account.li_at_cookie,
+        proxy_config=proxy_config,
+        user_agent=account.user_agent,
+        headless=True
+    )
     try:
         bot.start()
         print("   ✅ Bot démarré\n")
@@ -185,8 +217,12 @@ def send_messages(db, campaign):
             if campaign.use_ai_customization:
                 print("      ✨ Génération message AI...")
                 # Récupérer le prompt système
-                system_prompt_setting = db.query(Settings).filter(Settings.key == 'system_prompt').first()
-                system_prompt = system_prompt_setting.value if system_prompt_setting else None
+                # Priorité: Compte > Global
+                system_prompt = campaign.account.system_prompt
+                
+                if not system_prompt:
+                    system_prompt_setting = db.query(Settings).filter(Settings.key == 'system_prompt').first()
+                    system_prompt = system_prompt_setting.value if system_prompt_setting else None
                 
                 prospect_data = {
                     'name': prospect.full_name,

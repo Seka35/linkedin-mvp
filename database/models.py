@@ -8,12 +8,45 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from .db import Base
 
+
+class Account(Base):
+    """Compte LinkedIn (Multi-comptes)"""
+    __tablename__ = 'accounts'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)  # Nom du compte (ex: "Seka Perso")
+    email = Column(String, unique=True, nullable=False)
+    
+    # Configuration LinkedIn
+    li_at_cookie = Column(Text)
+    
+    # Configuration Proxy
+    proxy_url = Column(String)
+    proxy_username = Column(String)
+    proxy_username = Column(String)
+    proxy_password = Column(String)
+    proxy_enabled = Column(Boolean, default=True)  # Toggle ON/OFF sans supprimer les infos
+    user_agent = Column(String)  # Custom User-Agent per account
+    
+    # Configuration AI
+    system_prompt = Column(Text)  # Prompt système spécifique au compte
+    
+    # État
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relations
+    prospects = relationship("Prospect", back_populates="account")
+    campaigns = relationship("Campaign", back_populates="account")
+
+
 class Prospect(Base):
     """Table des prospects LinkedIn"""
     __tablename__ = 'prospects'
     
     id = Column(Integer, primary_key=True)
-    linkedin_url = Column(String, unique=True, nullable=False)
+    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=True) # Nullable pour la migration
+    linkedin_url = Column(String, nullable=False) # Removed unique=True constraint globally, managed by application logic per account if needed, or composite unique index later
     full_name = Column(String)
     headline = Column(String)
     company = Column(String)
@@ -42,12 +75,14 @@ class Prospect(Base):
     # Relations
     actions = relationship("Action", back_populates="prospect")
     campaign = relationship("Campaign", back_populates="prospects")
+    account = relationship("Account", back_populates="prospects")
 
 class Campaign(Base):
     """Table des campagnes de prospection"""
     __tablename__ = 'campaigns'
     
     id = Column(Integer, primary_key=True)
+    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=True) # Nullable pour la migration
     name = Column(String, nullable=False)
     search_query = Column(String)  # Google dork ou critères Apify
     
@@ -67,6 +102,7 @@ class Campaign(Base):
     # Relations
     actions = relationship("Action", back_populates="campaign")
     prospects = relationship("Prospect", back_populates="campaign")
+    account = relationship("Account", back_populates="campaigns")
 
 class Action(Base):
     """Table des actions LinkedIn effectuées"""
@@ -94,7 +130,7 @@ class Action(Base):
     # Relations
     prospect = relationship("Prospect", back_populates="actions")
     campaign = relationship("Campaign", back_populates="actions")
-
+    
 class Settings(Base):
     """Configuration globale de l'application"""
     __tablename__ = 'settings'

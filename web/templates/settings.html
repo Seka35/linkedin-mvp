@@ -10,14 +10,113 @@
     </div>
     {% endif %}
 
+    <!-- Account Settings -->
+    {% if current_account %}
     <div class="card"
-        style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-        <h3>🤖 AI Configuration</h3>
+        style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px;">
+        <h3>👤 Account Configuration: <span style="color: #1976d2;">{{ current_account.name }}</span></h3>
         <p style="color: #666; margin-bottom: 20px;">
-            Customize the system prompt used by the AI to generate connection messages.
+            Configure credentials and proxy for this specific account.
         </p>
 
-        <form method="POST">
+        <form method="POST" action="/settings/account">
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px;">LinkedIn Session Cookie
+                    (li_at)</label>
+                <input type="text" name="li_at_cookie" value="{{ current_account.li_at_cookie or '' }}"
+                    placeholder="li_at..."
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                <p style="font-size: 0.8em; color: #888; margin-top: 5px;">Required for automation. Refresh this if the
+                    bot fails to login.</p>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label style="font-weight: 600; margin-bottom: 5px;">Proxy Configuration</label>
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="proxy_enabled" name="proxy_enabled" {%
+                            if current_account.proxy_enabled %}checked{% endif %}>
+                        <label class="custom-control-label" for="proxy_enabled" style="font-size:0.9em;">Enable
+                            Proxy</label>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 15px;">
+                    <div style="flex: 2;">
+                        <label style="font-size: 0.9em; margin-bottom: 5px; display: block;">Host:Port</label>
+                        <input type="text" name="proxy_url" value="{{ current_account.proxy_url or '' }}"
+                            placeholder="e.g. geo.iproyal.com:12345"
+                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.9em; margin-bottom: 5px; display: block;">Username</label>
+                        <input type="text" name="proxy_username" value="{{ current_account.proxy_username or '' }}"
+                            placeholder="user"
+                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.9em; margin-bottom: 5px; display: block;">Password</label>
+                        <input type="password" name="proxy_password" value="{{ current_account.proxy_password or '' }}"
+                            placeholder="pass"
+                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Agent Configuration -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <label style="font-weight: 600; margin-bottom: 5px; display: block;">Custom User Agent
+                    (Optional)</label>
+                <input type="text" name="user_agent" value="{{ current_account.user_agent or '' }}"
+                    placeholder="e.g. Mozilla/5.0 (Windows NT 10.0; Win64; x64)..."
+                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 0.9em;">
+                <p style="font-size: 0.8em; color: #888; margin-top: 5px;">
+                    Leave empty to use the default User-Agent (Firefox Linux). Use this to match your cookie's original
+                    session environment.
+                </p>
+            </div>
+
+            <div style="text-align: right;">
+                <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Account Settings</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if current_account %}
+    <div class="card"
+        style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; border-left: 5px solid #1976d2;">
+        <h3>🤖 Custom AI Prompt for <span style="color: #1976d2;">{{ current_account.name }}</span></h3>
+        <p style="color: #666; margin-bottom: 20px;">
+            Override the default prompt for this specific account. Leave empty to use the Default Configuration below.
+        </p>
+        <form method="POST" action="/settings/account">
+            <input type="hidden" name="update_prompt" value="true">
+            <div class="form-group">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px;">System Prompt
+                    (Personnalisé)</label>
+                <textarea name="system_prompt" rows="8" placeholder="You are a CEO..."
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; line-height: 1.4;">{{ current_account.system_prompt or '' }}</textarea>
+                <p style="font-size: 0.8em; color: #888; margin-top: 5px;">Si vide, le prompt global ci-dessous sera
+                    utilisé.</p>
+            </div>
+            <div style="text-align: right; margin-top: 15px;">
+                <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Account Prompt</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Global Settings -->
+    <div class="card"
+        style="background: #f8f9fa; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e9ecef;">
+        <h3>🌎 Default Configuration (Fallback)</h3>
+        <p style="color: #666; margin-bottom: 20px;">
+            Customize the system prompt used by the AI to generate connection messages (applies to all accounts unless
+            overridden).
+        </p>
+
+        <form method="POST" action="/settings">
             <div class="form-group">
                 <label style="font-weight: 600; display: block; margin-bottom: 8px;">System Prompt / Template</label>
                 <p style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">
@@ -29,7 +128,7 @@
             </div>
 
             <div style="margin-top: 20px; text-align: right;">
-                <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Changes</button>
+                <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Prompt</button>
             </div>
         </form>
     </div>
