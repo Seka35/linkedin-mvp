@@ -9,19 +9,21 @@ Tu as déjà :
 
 ## 📋 Étapes de Déploiement
 
-### 1️⃣ Transférer les fichiers sur le VPS
+### 1️⃣ Cloner le projet depuis GitHub
 
-Depuis ta machine locale, envoie le projet sur ton VPS :
+Sur ton VPS, clone directement le repo :
 
 ```bash
-# Option A : Via rsync (recommandé)
-rsync -avz --exclude 'venv' --exclude '__pycache__' --exclude '*.pyc' \
-  /home/seka/Desktop/linkedin-mvp/ root@tbisla.pro:/opt/linkedin-bot/
+# Se connecter au VPS
+ssh root@tbisla.pro
 
-# Option B : Via Git (si tu as déjà push sur GitHub)
-# Sur le VPS :
+# Aller dans /opt
 cd /opt
-git clone https://github.com/ton-username/linkedin-mvp.git linkedin-bot
+
+# Cloner le projet
+git clone https://github.com/Seka35/linkedin-mvp.git linkedin-bot
+
+# Entrer dans le dossier
 cd linkedin-bot
 ```
 
