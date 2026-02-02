@@ -17,6 +17,7 @@ import argparse
 import sys
 import os
 import json
+import math
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
@@ -113,20 +114,66 @@ def send_connections(db, campaign):
     print("\n🤝 ÉTAPE 1: Connexions/Follow")
     
     # Récupérer TOUS les prospects "new" (pas juste ceux de la campagne)
+    # --- LOGIQUE DAILY LIMIT ---
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Compter combien d'actions de ce type ont déjà été faites aujourd'hui pour cette campagne
+    actions_today = db.query(Action).filter(
+        Action.campaign_id == campaign.id,
+        Action.action_type == 'connect',
+        Action.executed_at >= today_start
+    ).count()
+    
+    remaining_quota = campaign.daily_limit - actions_today
+    
+    if remaining_quota <= 0:
+        print(f"   🛑 Quota journalier atteint ({actions_today}/{campaign.daily_limit}). Pas de nouvelles connexions.")
+        return
+
+    print(f"   Quota restant aujourd'hui : {remaining_quota} (Déjà fait: {actions_today})")
+
+    # --- LOGIQUE DE LISSAGE (PACING) ---
+    # Pour éviter de tout faire à 8h du matin, on calcule un rythme horaire
+    # Ex: 10 actions sur 10 heures (9h-19h) = 1 action/heure
+    
+    settings = json.loads(campaign.account.security_settings) if campaign.account.security_settings else {}
+    working_hours = settings.get('working_hours', {})
+    start_str = working_hours.get('start', '09:00')
+    end_str = working_hours.get('end', '18:00')
+    
+    try:
+        fmt = '%H:%M'
+        t_start = datetime.strptime(start_str, fmt)
+        t_end = datetime.strptime(end_str, fmt)
+        total_hours = (t_end - t_start).seconds / 3600
+        if total_hours < 1: total_hours = 1
+        
+        # Utiliser ceil pour arrondir à l'entier SUPÉRIEUR
+        # Ex: 10 quota / 6 heures = 1.66 -> 2 actions par heure
+        # Cela garantit qu'on atteint le quota (quitte à finir 1h plus tôt)
+        target_per_hour = max(1, math.ceil(campaign.daily_limit / total_hours))
+        
+        # On ne veut pas dépasser :
+        # 1. Le quota global restant
+        # 2. Le rythme horaire cible (pour laisser du travail aux prochaines heures)
+        
+        limit_now = min(remaining_quota, target_per_hour)
+        print(f"   ⏱️ Rythme calculé : {target_per_hour}/heure (sur {total_hours:.1f}h).")
+        print(f"   ➡️ Actions pour cette exécution : {limit_now}")
+        
+    except Exception as e:
+        print(f"   ⚠️ Erreur calcul pacing ({e}), fallback sur tout le quota.")
+        limit_now = remaining_quota
+
     prospects = db.query(Prospect).filter(
         Prospect.status == 'new'
-    ).limit(campaign.daily_limit).all()
+    ).limit(limit_now).all()
     
     if not prospects:
         print("   ℹ️ Aucun prospect 'new' disponible")
-        
-        # TODO: Auto-scraping si pas assez de prospects
-        # print(f"   🔍 Lancement du scraping: {campaign.search_query}")
-        # scrape_more_prospects(campaign)
-        
         return
     
-    print(f"   📋 {len(prospects)} prospect(s) à contacter")
+    print(f"   📋 {len(prospects)} prospect(s) à contacter maintenant")
     
     # Démarrer le bot
     # Démarrer le bot avec le contexte du compte associé à la campagne
@@ -260,8 +307,54 @@ def send_messages(db, campaign):
     
     print(f"   📋 {len(prospects_to_message)} prospect(s) à messager")
     
-    # Limiter au daily_limit
-    prospects_to_message = prospects_to_message[:campaign.daily_limit]
+    
+    # --- LOGIQUE DAILY LIMIT (MESSAGES) ---
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Compter combien de messages ont déjà été envoyés aujourd'hui pour cette campagne
+    actions_today = db.query(Action).filter(
+        Action.campaign_id == campaign.id,
+        Action.action_type == 'message',
+        Action.executed_at >= today_start
+    ).count()
+    
+    remaining_quota = campaign.daily_limit - actions_today
+    
+    if remaining_quota <= 0:
+        print(f"   🛑 Quota journalier de messages atteint ({actions_today}/{campaign.daily_limit}).")
+        return
+
+    print(f"   Quota messages restant aujourd'hui : {remaining_quota} (Déjà fait: {actions_today})")
+
+    # --- LOGIQUE DE LISSAGE (PACING - MESSAGES) ---
+    settings = json.loads(campaign.account.security_settings) if campaign.account.security_settings else {}
+    working_hours = settings.get('working_hours', {})
+    start_str = working_hours.get('start', '09:00')
+    end_str = working_hours.get('end', '18:00')
+    
+    try:
+        fmt = '%H:%M'
+        t_start = datetime.strptime(start_str, fmt)
+        t_end = datetime.strptime(end_str, fmt)
+        total_hours = (t_end - t_start).seconds / 3600
+        if total_hours < 1: total_hours = 1
+        
+        target_per_hour = max(1, math.ceil(campaign.daily_limit / total_hours))
+        
+        limit_now = min(remaining_quota, target_per_hour)
+        print(f"   ⏱️ Rythme calculé : {target_per_hour}/heure (sur {total_hours:.1f}h).")
+        print(f"   ➡️ Messages pour cette exécution : {limit_now}")
+        
+    except Exception as e:
+        print(f"   ⚠️ Erreur calcul pacing ({e}), fallback sur tout le quota.")
+        limit_now = remaining_quota
+
+    # Limiter au limit_now (Pacing)
+    prospects_to_message = prospects_to_message[:limit_now]
+    
+    if not prospects_to_message:
+        print("   ℹ️ Aucun prospect à contacter maintenant (Quota horaire atteint ou 0).")
+        return
     
     # Démarrer le bot
     # Démarrer le bot avec le contexte du compte associé à la campagne
