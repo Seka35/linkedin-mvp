@@ -10,11 +10,12 @@
     </div>
     {% endif %}
 
-    <!-- Account Settings -->
+    <!-- Account AI Settings -->
+
     {% if current_account %}
     <div class="card"
-        style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px;">
-        <h3>👤 Account Configuration: <span style="color: #1976d2;">{{ current_account.name }}</span></h3>
+        style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; border-left: 5px solid #1976d2;">
+        <h3>🤖 Custom AI Prompt for <span style="color: #1976d2;">{{ current_account.name }}</span></h3>
         <p style="color: #666; margin-bottom: 20px;">
             Configure credentials and proxy for this specific account.
         </p>
@@ -83,6 +84,7 @@
     </div>
     {% endif %}
 
+    <!-- Account AI Settings -->
     {% if current_account %}
     <div class="card"
         style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; border-left: 5px solid #1976d2;">
@@ -120,6 +122,7 @@
             <div class="form-group">
                 <label style="font-weight: 600; display: block; margin-bottom: 8px;">System Prompt / Template</label>
                 <p style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">
+                    This prompt is used for all accounts unless a custom prompt is defined above.
                     Use placeholders: <code>{name}</code>, <code>{headline}</code>, <code>{summary}</code>,
                     <code>{experience}</code>.
                 </p>
@@ -128,9 +131,63 @@
             </div>
 
             <div style="margin-top: 20px; text-align: right;">
-                <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Prompt</button>
+                <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Global Prompt</button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    function promptRename(id, oldName) {
+        const newName = prompt("Nouveau nom pour ce compte :", oldName);
+        if (newName && newName !== oldName) {
+            document.getElementById('renameAccountId').value = id;
+            document.getElementById('renameAccountName').value = newName;
+            document.getElementById('renameForm').submit();
+        }
+    }
+
+    function openSecurityModal(accountId, settings) {
+        if (typeof settings === 'string') {
+            try { settings = JSON.parse(settings); } catch (e) { settings = {}; }
+        }
+
+        document.getElementById('secAccountId').value = accountId;
+
+        // Defaults
+        const timezone = settings.timezone || 'Europe/Paris';
+        const working_hours = settings.working_hours || { start: '09:00', end: '18:00', days: [0, 1, 2, 3, 4] };
+        const typing_speed = settings.typing_speed || { min: 50, max: 150 };
+        const human_scroll = settings.human_scroll !== false; // Default true
+
+        // Fill fields
+        document.getElementById('secTimezone').value = timezone;
+        document.getElementById('secStart').value = working_hours.start;
+        document.getElementById('secEnd').value = working_hours.end;
+        document.getElementById('secMinType').value = typing_speed.min;
+        document.getElementById('secMaxType').value = typing_speed.max;
+        document.getElementById('secScroll').checked = human_scroll;
+
+        // Checkboxes days
+        const days = working_hours.days || [];
+        document.querySelectorAll('input[name="days"]').forEach(cb => {
+            cb.checked = days.includes(parseInt(cb.value));
+        });
+
+        // Show modal
+        document.getElementById('securityModal').style.display = 'block';
+    }
+
+    function closeSecurityModal() {
+        document.getElementById('securityModal').style.display = 'none';
+    }
+
+    // Fermer si click dehors
+    window.onclick = function (event) {
+        const modal = document.getElementById('securityModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+</script>
 {% endblock %}

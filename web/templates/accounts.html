@@ -80,22 +80,29 @@
                             Current
                         </button>
                         {% endif %}
+                        <!-- Security Button -->
+                        <button type="button" class="btn-tile"
+                            style="width: 32px; height: 32px; border-radius: 4px; border: 1px solid #4caf50; background: #e8f5e9; color: #2e7d32; display:flex; align-items:center; justify-content:center;"
+                            title="Security Settings" onclick="openSecurityModal(this)" data-id="{{ account.id }}"
+                            data-settings='{{ account.security_settings or "{}" }}'>
+                            <span style="font-size: 1rem;">🛡️</span>
+                        </button>
 
                         <!-- Rename Button -->
                         <button type="button" class="btn-tile"
-                            style="width: 40px; height: 40px; border-radius: 8px; border: 1px solid #ffc107; background: #fff8e1; color: #ff8f00;"
+                            style="width: 32px; height: 32px; border-radius: 4px; border: 1px solid #ffc107; background: #fff8e1; color: #ff8f00; display:flex; align-items:center; justify-content:center;"
                             title="Rename Account" onclick="promptRename('{{ account.id }}', '{{ account.name }}')">
-                            <div class="tile-icon" style="margin:0; font-size: 1.2rem;">✏️</div>
+                            <span style="font-size: 1rem;">✏️</span>
                         </button>
 
                         <!-- Delete Button -->
                         <form action="/accounts/delete" method="POST" style="margin:0;"
-                            onsubmit="return confirm('⚠️ Êtes-vous sûr de vouloir SUPPRIMER le compte {{ account.name }} ?\n\nToutes les données associées (prospects, campagnes) seront effacées définitivement.');">
+                            onsubmit="return confirm('⚠️ Are you sure you want to DELETE account {{ account.name }}?\n\nAll associated data will be lost.');">
                             <input type="hidden" name="account_id" value="{{ account.id }}">
                             <button type="submit" class="btn-delete"
-                                style="width: 40px; height: 40px; background: #fff0f1; color: #d32f2f; border: 1px solid #ffcdd2; display: flex; align-items: center; justify-content: center; border-radius: 8px;"
+                                style="width: 32px; height: 32px; background: #fff0f1; color: #d32f2f; border: 1px solid #ffcdd2; display: flex; align-items: center; justify-content: center; border-radius: 4px;"
                                 title="Delete Account">
-                                <span style="font-size: 1.2rem;">🗑️</span>
+                                <span style="font-size: 1rem;">🗑️</span>
                             </button>
                         </form>
                     </div>
@@ -105,6 +112,7 @@
         </tbody>
     </table>
 </div>
+</div>
 
 <!-- Rename Modal Hidden Form -->
 <form id="renameForm" action="/accounts/rename" method="POST" style="display:none;">
@@ -112,19 +120,162 @@
     <input type="hidden" name="name" id="renameAccountName">
 </form>
 
+<!-- Security Modal -->
+<div id="securityModal" class="modal"
+    style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+    <div class="modal-content"
+        style="background-color: #fefefe; margin: 5% auto; padding: 25px; border: 1px solid #888; width: 450px; border-radius: 12px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+        <span onclick="closeSecurityModal()"
+            style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 20px;">&times;</span>
+        <h2
+            style="margin-top: 0; color: #2e7d32; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; margin-bottom: 25px; text-align: center; font-size: 1.5rem;">
+            🛡️ Security Settings</h2>
+
+        <form action="/accounts/security" method="POST">
+            <input type="hidden" name="account_id" id="secAccountId">
+
+            <!-- SECTION: SECURITY & BEHAVIOR -->
+            <div
+                style="background: #e8f5e9; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #c8e6c9;">
+                <h4
+                    style="margin-top:0; color:#2e7d32; margin-bottom:15px; display: flex; align-items: center; gap: 8px;">
+                    Configuration
+                </h4>
+
+                <!-- Timezone -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.9em;">🌍 Timezone</label>
+                    <select name="timezone" id="secTimezone"
+                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background: white;">
+                        <option value="Europe/Paris">Europe/Paris</option>
+                        <option value="Europe/London">Europe/London</option>
+                        <option value="America/New_York">America/New_York</option>
+                        <option value="America/Los_Angeles">America/Los_Angeles</option>
+                        <option value="Asia/Dubai">Asia/Dubai</option>
+                        <option value="Asia/Singapore">Asia/Singapore</option>
+                    </select>
+                </div>
+
+                <!-- Working Hours -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.9em;">⏰ Working Hours (Local Time)</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="time" name="start_time" id="secStart" required
+                            style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
+                        <span style="font-size: 0.9em; color: #555;">to</span>
+                        <input type="time" name="end_time" id="secEnd" required
+                            style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
+                    </div>
+                </div>
+
+                <!-- Active Days -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.9em;">📅 Active Days</label>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px;">
+                        <label><input type="checkbox" name="days" value="0"> Mon</label>
+                        <label><input type="checkbox" name="days" value="1"> Tue</label>
+                        <label><input type="checkbox" name="days" value="2"> Wed</label>
+                        <label><input type="checkbox" name="days" value="3"> Thu</label>
+                        <label><input type="checkbox" name="days" value="4"> Fri</label>
+                        <label><input type="checkbox" name="days" value="5" style="accent-color: red;"> Sat</label>
+                        <label><input type="checkbox" name="days" value="6" style="accent-color: red;"> Sun</label>
+                    </div>
+                </div>
+
+                <!-- Typing Speed -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.9em;">⌨️ Typing Speed (ms/char)</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="number" name="typing_min" id="secMinType" min="10" max="500"
+                            style="width: 70px; padding: 6px; border: 1px solid #ccc; border-radius: 4px;"
+                            placeholder="Min">
+                        <span style="font-size: 0.8em;">to</span>
+                        <input type="number" name="typing_max" id="secMaxType" min="10" max="1000"
+                            style="width: 70px; padding: 6px; border: 1px solid #ccc; border-radius: 4px;"
+                            placeholder="Max">
+                        <span style="font-size: 0.75rem; color: #666;">(Slow = Human)</span>
+                    </div>
+                </div>
+
+                <!-- Human Scroll -->
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" name="human_scroll" id="secScroll">
+                        <span style="font-size: 0.9em;">📜 Enable Human Random Scroll</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 25px;">
+                <button type="button" onclick="closeSecurityModal()"
+                    style="margin-right: 10px; padding: 10px 25px; border: 1px solid #ddd; background: #fff; border-radius: 20px; cursor: pointer; color: #666; font-weight: 500;">Cancel</button>
+                <button type="submit" class="btn btn-primary"
+                    style="padding: 10px 30px; background: #2e7d32; border-radius: 20px; font-weight: 600; box-shadow: 0 2px 5px rgba(46, 125, 50, 0.3);">Save
+                    Security</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     function promptRename(id, oldName) {
-        const newName = prompt("Nouveau nom pour ce compte :", oldName);
+        const newName = prompt("New name for this account:", oldName);
         if (newName && newName !== oldName) {
             document.getElementById('renameAccountId').value = id;
             document.getElementById('renameAccountName').value = newName;
             document.getElementById('renameForm').submit();
         }
     }
+
+    function openSecurityModal(btn) {
+        // Read data attributes
+        const accountId = btn.dataset.id;
+
+        // Parse Security Settings
+        let settings = {};
+        try {
+            settings = JSON.parse(btn.dataset.settings);
+        } catch (e) { console.error('JSON Parse error', e); }
+
+        // Populate ID
+        document.getElementById('secAccountId').value = accountId;
+
+        // Populate Security
+        const timezone = settings.timezone || 'Europe/Paris';
+        const working_hours = settings.working_hours || { start: '09:00', end: '18:00', days: [0, 1, 2, 3, 4] };
+        const typing_speed = settings.typing_speed || { min: 50, max: 150 };
+        const human_scroll = settings.human_scroll !== false;
+
+        document.getElementById('secTimezone').value = timezone;
+        document.getElementById('secStart').value = working_hours.start;
+        document.getElementById('secEnd').value = working_hours.end;
+        document.getElementById('secMinType').value = typing_speed.min;
+        document.getElementById('secMaxType').value = typing_speed.max;
+        document.getElementById('secScroll').checked = human_scroll;
+
+        // Checkboxes days
+        const days = working_hours.days || [];
+        document.querySelectorAll('input[name="days"]').forEach(cb => {
+            cb.checked = days.includes(parseInt(cb.value));
+        });
+
+        // Show modal
+        document.getElementById('securityModal').style.display = 'block';
+    }
+
+    function closeSecurityModal() {
+        document.getElementById('securityModal').style.display = 'none';
+    }
+
+    window.onclick = function (event) {
+        const modal = document.getElementById('securityModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
 </script>
-</tbody>
-</table>
-</div>
+
+
 
 <style>
     .form-group {

@@ -15,7 +15,7 @@ from .proxy_manager import ProxyManager
 class LinkedInBot:
     """Bot d'automatisation LinkedIn avec authentification cookie"""
     
-    def __init__(self, li_at_cookie=None, proxy_config: dict=None, user_agent: str=None, headless: bool = True):
+    def __init__(self, li_at_cookie=None, proxy_config: dict=None, user_agent: str=None, headless: bool = True, **kwargs):
         # Priorité aux arguments passés, sinon .env (fallback)
         self.li_at_cookie = li_at_cookie or os.getenv('LINKEDIN_LI_AT_COOKIE')
         self.headless = headless
@@ -24,6 +24,12 @@ class LinkedInBot:
         
         # Override proxy configuration if provided
         self.manual_proxy_config = proxy_config
+        
+        # Security Settings (defaults)
+        self.security_settings = kwargs.get('security_settings', {})
+        self.typing_speed = self.security_settings.get('typing_speed', {'min': 50, 'max': 150})
+        self.mouse_speed = self.security_settings.get('mouse_speed', 'medium')
+        self.human_scroll = self.security_settings.get('human_scroll', True)
         
         self.playwright = None
         self.browser = None
@@ -164,6 +170,7 @@ class LinkedInBot:
             print(f"👁️ Visite: {profile_url}")
             self.page.goto(profile_url, wait_until='domcontentloaded')
             self._random_delay(3, 6)
+            self.smart_scroll() # Simulation lecture profil
             return True
         except Exception as e:
             print(f"❌ Erreur visite: {e}")
@@ -210,6 +217,49 @@ class LinkedInBot:
 
     def _random_delay(self, min_sec: float = 1, max_sec: float = 3):
         time.sleep(random.uniform(min_sec, max_sec))
+
+    def human_type(self, selector: str, text: str):
+        """Simuler une frappe humaine avec vitesse variable et fautes (optionnel)"""
+        try:
+            # Focus élément
+            self.page.click(selector)
+            
+            for char in text:
+                # Vitesse variable (ms)
+                delay = random.uniform(self.typing_speed['min'], self.typing_speed['max']) # ms
+                
+                # TODO: Ajouter typo logic ici (e.g. 5% chance)
+                
+                self.page.keyboard.type(char, delay=delay)
+                
+                # Pause aléatoire entre les mots
+                if char == ' ':
+                     time.sleep(random.uniform(0.1, 0.3))
+                     
+        except Exception as e:
+            print(f"⚠️ Erreur human_type: {e}, fallback standard")
+            self.page.fill(selector, text)
+
+    def smart_scroll(self):
+        """Scroll aléatoire pour simuler la lecture"""
+        if not self.human_scroll: return
+        
+        print("📜 Simulation lecture (Smart Scroll)...")
+        try:
+            # Scroll Down
+            for _ in range(random.randint(2, 5)):
+                scroll_amount = random.randint(300, 700)
+                self.page.mouse.wheel(0, scroll_amount)
+                time.sleep(random.uniform(0.5, 1.5))
+            
+            # Scroll Up (parfois)
+            if random.random() > 0.7:
+                 self.page.mouse.wheel(0, -random.randint(200, 500))
+                 time.sleep(random.uniform(0.5, 1.0))
+                 
+        except Exception as e:
+            print(f"⚠️ Erreur smart_scroll: {e}")
+
 
     def send_connection_request(self, profile_url: str, message: str = None) -> bool:
         """Envoyer une demande de connexion (Support FR/EN)"""
@@ -615,7 +665,7 @@ class LinkedInBot:
                     print("📝 Remplissage du message...")
                     editor.click()
                     self._random_delay(0.2, 0.5)
-                    self.page.keyboard.type(message)
+                    self.human_type("div.msg-form__contenteditable" if editor else "textarea", message)
                     self._random_delay(1, 2)
                     
                     # 3. Envoi (SCOPÉ au formulaire)

@@ -30,6 +30,9 @@ class Account(Base):
     user_agent = Column(String)  # Custom User-Agent per account
     cookie_status = Column(String, default='valid') # 'valid', 'expired', 'unknown'
     
+    # Configuration Sécurité (JSON)
+    security_settings = Column(Text, default='{}') # JSON: working_hours, typing_speed, timezone, etc.
+    
     # Configuration AI
     system_prompt = Column(Text)  # Prompt système spécifique au compte
     

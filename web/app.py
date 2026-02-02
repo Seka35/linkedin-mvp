@@ -679,8 +679,11 @@ def settings_page():
     if not current_prompt:
         current_prompt = DEFAULT_PROMPT.strip()
 
+    # Récupérer tous les comptes pour l'affichage dans Settings
+    accounts = db.query(Account).all()
+
     db.close()
-    return render_template('settings.html', system_prompt=current_prompt, saved=request.args.get('saved'))
+    return render_template('settings.html', system_prompt=current_prompt, accounts=accounts, saved=request.args.get('saved'))
 
 @app.route('/accounts')
 def accounts_list():
@@ -793,9 +796,9 @@ def delete_account():
 
 @app.route('/settings/account', methods=['POST'])
 def update_account_settings():
-    """Mettre à jour les paramètres spécifiques au compte"""
+    """Mettre à jour les paramètres spécifiques au compte (Creds + Prompt)"""
     if not hasattr(g, 'account') or not g.account:
-        return redirect(url_for('index', error="Aucun compte sélectionné"))
+        return redirect(url_for('settings_page', error="No account selected"))
         
     db = SessionLocal()
     account = db.query(Account).get(g.account.id)
@@ -806,20 +809,65 @@ def update_account_settings():
     else:
         # Mise à jour credentials/proxy
         account.li_at_cookie = request.form.get('li_at_cookie')
+        account.user_agent = request.form.get('user_agent')
+        
+        account.proxy_enabled = True if request.form.get('proxy_enabled') == 'on' else False
         account.proxy_url = request.form.get('proxy_url')
         account.proxy_username = request.form.get('proxy_username')
         account.proxy_password = request.form.get('proxy_password')
-        account.proxy_enabled = True if request.form.get('proxy_enabled') == 'on' else False
-        account.user_agent = request.form.get('user_agent')
         
-        # Reset status if cookie is updated (or just reset anyway to force retry)
-        account.cookie_status = 'valid'
-    
+        # Reset cookie status if manual update
+        if request.form.get('li_at_cookie'):
+             account.cookie_status = 'valid'
+             
     db.commit()
-    db.refresh(account) 
     db.close()
-    
     return redirect(url_for('settings_page', saved='account'))
+
+@app.route('/accounts/security', methods=['POST'])
+def update_account_security():
+    """Mettre à jour UNIQUEMENT la sécurité (Timezone, Hours, Human)"""
+    account_id = request.form.get('account_id')
+    
+    if not account_id:
+        return redirect(url_for('accounts_list', error="Missing Account ID"))
+        
+    db = SessionLocal()
+    account = db.query(Account).get(account_id)
+    
+    if not account:
+        db.close()
+        return redirect(url_for('accounts_list', error="Account not found"))
+        
+    try:
+        # Security Settings (JSON)
+        settings = {
+            "timezone": request.form.get('timezone', 'Europe/Paris'),
+            "working_hours": {
+                "start": request.form.get('start_time', '09:00'),
+                "end": request.form.get('end_time', '18:00'),
+                "days": [int(d) for d in request.form.getlist('days')]
+            },
+            "typing_speed": {
+                "min": int(request.form.get('typing_min', 50)),
+                "max": int(request.form.get('typing_max', 150))
+            },
+            "human_scroll": True if request.form.get('human_scroll') == 'on' else False,
+            "mouse_speed": "medium"
+        }
+        
+        account.security_settings = json.dumps(settings)
+        db.commit()
+        
+    except Exception as e:
+        print(f"❌ Error updating security: {e}")
+        db.rollback()
+        return redirect(url_for('accounts_list', error="Update failed"))
+    finally:
+        db.close()
+        
+    return redirect(url_for('accounts_list', success="Security updated"))
+
                          
 def get_system_prompt_global(db):
     """Helper pour récupérer le prompt global"""

@@ -16,9 +16,54 @@ import time
 import argparse
 import sys
 import os
+import json
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    # Python < 3.9 fallback
+    from datetime import timezone as ZoneInfo
 
 # Créer le dossier logs s'il n'existe pas
 os.makedirs('logs', exist_ok=True)
+
+def check_working_hours(account) -> bool:
+    """Vérifie si l'heure actuelle est dans les horaires de travail du compte"""
+    try:
+        settings = json.loads(account.security_settings) if account.security_settings else {}
+        working_hours = settings.get('working_hours', {})
+        
+        if not working_hours:
+            return True # Pas de restriction par défaut
+            
+        tz_name = settings.get('timezone', 'Europe/Paris')
+        try:
+            tz = ZoneInfo(tz_name)
+        except:
+            tz = ZoneInfo('UTC')
+            
+        now = datetime.now(tz)
+        
+        # 1. Vérifier le jour (0=Lundi, 6=Dimanche)
+        allowed_days = working_hours.get('days', [0, 1, 2, 3, 4]) # Lun-Ven par défaut
+        if now.weekday() not in allowed_days:
+            print(f"   ⏸️ Hors horaires (Jour {now.weekday()} non autorisé)")
+            return False
+            
+        # 2. Vérifier l'heure
+        start_str = working_hours.get('start', '09:00')
+        end_str = working_hours.get('end', '18:00')
+        
+        current_time = now.strftime('%H:%M')
+        
+        if start_str <= current_time <= end_str:
+            return True
+        else:
+            print(f"   ⏸️ Hors horaires ({current_time} hors de {start_str}-{end_str})")
+            return False
+            
+    except Exception as e:
+        print(f"   ⚠️ Erreur vérification horaires: {e}")
+        return True # En cas d'erreur, on autorise (fail open) ou block (fail closed)? Fail open pour l'instant.
 
 def random_delay(min_seconds=30, max_seconds=120):
     """Délai aléatoire pour éviter la détection"""
@@ -86,7 +131,11 @@ def send_connections(db, campaign):
     # Démarrer le bot
     # Démarrer le bot avec le contexte du compte associé à la campagne
     account = campaign.account
-    proxy_config = None
+    
+    # Vérification horaires
+    if not check_working_hours(account):
+        return
+
     proxy_config = None
     if account.proxy_url and account.proxy_enabled:
         proxy_config = {
@@ -94,12 +143,16 @@ def send_connections(db, campaign):
             'username': account.proxy_username,
             'password': account.proxy_password
         }
+    
+    # Parse settings
+    security_settings = json.loads(account.security_settings) if account.security_settings else {}
 
     bot = LinkedInBot(
         li_at_cookie=account.li_at_cookie,
         proxy_config=proxy_config,
         user_agent=account.user_agent,
-        headless=True
+        headless=True,
+        security_settings=security_settings
     )
     try:
         if bot.start():
@@ -213,7 +266,11 @@ def send_messages(db, campaign):
     # Démarrer le bot
     # Démarrer le bot avec le contexte du compte associé à la campagne
     account = campaign.account
-    proxy_config = None
+    
+    # Vérification horaires
+    if not check_working_hours(account):
+        return
+
     proxy_config = None
     if account.proxy_url and account.proxy_enabled:
         proxy_config = {
@@ -222,11 +279,15 @@ def send_messages(db, campaign):
             'password': account.proxy_password
         }
 
+    # Parse settings
+    security_settings = json.loads(account.security_settings) if account.security_settings else {}
+
     bot = LinkedInBot(
         li_at_cookie=account.li_at_cookie,
         proxy_config=proxy_config,
         user_agent=account.user_agent,
-        headless=True
+        headless=True,
+        security_settings=security_settings
     )
     try:
         if bot.start():
