@@ -206,6 +206,11 @@
                 </button>
                 {% endif %}
 
+                <button onclick="openEditCampaign({{ campaign.id }})" class="btn-action"
+                    style="color: #1a73e8; border-color: #dadce0; width:100%; justify-content:center;">
+                    ✏️ Edit
+                </button>
+
                 <button onclick="openLogsModal({{ campaign.id }}, '{{ campaign.name|replace("'", "\\'") }}')"
                     class="btn-action"
                     style="color: #5f6368; border-color: #dadce0; width:100%; justify-content:center;">
@@ -242,6 +247,58 @@
                 Loading logs...
             </div>
         </div>
+    </div>
+</div>
+
+<!-- EDIT CAMPAIGN MODAL -->
+<div id="edit-campaign-modal" class="modal-overlay" style="display:none;"
+    onclick="if(event.target === this) closeEditModal()">
+    <div class="modal-content"
+        style="max-width: 600px; padding: 25px; background: white; border-radius: 12px; margin: 5% auto; position: relative;">
+        <button onclick="closeEditModal()"
+            style="position: absolute; right: 20px; top: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
+        <h3 style="margin-top:0;">✏️ Edit Campaign</h3>
+        <form id="edit-campaign-form" style="display:flex; flex-direction:column; gap:15px;">
+            <input type="hidden" name="campaign_id" id="edit_campaign_id">
+
+            <label style="font-weight:600; margin-bottom:-5px;">Name</label>
+            <input type="text" name="name" id="edit_name" required
+                style="padding:10px; border:1px solid #ccc; border-radius:6px;">
+
+            <label style="font-weight:600; margin-bottom:-5px;">Search Query</label>
+            <input type="text" name="search_query" id="edit_search_query" required
+                style="padding:10px; border:1px solid #ccc; border-radius:6px;">
+
+            <label style="font-weight:600; margin-bottom:-5px;">First Message</label>
+            <textarea name="first_message" id="edit_first_message" rows="4" required
+                style="padding:10px; border:1px solid #ccc; border-radius:6px;"></textarea>
+
+            <div style="display:flex; gap:20px;">
+                <div style="display:flex; flex-direction:column; gap:5px;">
+                    <label style="font-weight:600;">Delay (days)</label>
+                    <input type="number" name="message_delay_days" id="edit_message_delay_days" min="0" max="30"
+                        style="padding:8px; border:1px solid #ccc; border-radius:6px;">
+                </div>
+                <div style="display:flex; flex-direction:column; gap:5px;">
+                    <label style="font-weight:600;">Limit/day</label>
+                    <input type="number" name="daily_limit" id="edit_daily_limit" min="1" max="50"
+                        style="padding:8px; border:1px solid #ccc; border-radius:6px;">
+                </div>
+            </div>
+
+            <div style="background:#f8f9fa; padding:10px; border-radius:6px; display:flex; align-items:center;">
+                <input type="checkbox" name="use_ai_customization" id="edit_use_ai"
+                    style="width:18px; height:18px; margin-right:10px; cursor:pointer;">
+                <label for="edit_use_ai" style="cursor:pointer; font-weight:500; color:#444;">✨ Enable AI
+                    Personalization</label>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button type="submit" class="btn-primary">Save Changes</button>
+                <button type="button" onclick="closeEditModal()"
+                    style="background:#f1f3f4; color:#333; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Cancel</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -333,5 +390,54 @@
             else alert('Error: ' + (data.error || 'Unknown'));
         } catch (e) { alert('Network Error'); }
     }
+
+    // Edit Campaign Functions
+    async function openEditCampaign(id) {
+        try {
+            const res = await fetch(`/api/campaigns/${id}`);
+            const data = await res.json();
+
+            if (data.success) {
+                const c = data.campaign;
+                document.getElementById('edit_campaign_id').value = c.id;
+                document.getElementById('edit_name').value = c.name;
+                document.getElementById('edit_search_query').value = c.search_query;
+                document.getElementById('edit_first_message').value = c.first_message;
+                document.getElementById('edit_message_delay_days').value = c.message_delay_days;
+                document.getElementById('edit_daily_limit').value = c.daily_limit;
+                document.getElementById('edit_use_ai').checked = c.use_ai_customization;
+
+                document.getElementById('edit-campaign-modal').style.display = 'block';
+            } else {
+                alert('Error loading campaign: ' + data.error);
+            }
+        } catch (e) { alert('Network Error'); }
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-campaign-modal').style.display = 'none';
+    }
+
+    document.getElementById('edit-campaign-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const id = formData.get('campaign_id');
+        const payload = Object.fromEntries(formData.entries());
+
+        // Handle checkbox (unchecked = missing from FormData)
+        payload.use_ai_customization = document.getElementById('edit_use_ai').checked;
+
+        try {
+            const res = await fetch(`/api/campaigns/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) location.reload();
+            else alert('Error: ' + data.error);
+        } catch (err) { alert('Network Error'); }
+    });
+
 </script>
 {% endblock %}

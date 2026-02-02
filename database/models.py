@@ -144,3 +144,12 @@ class Settings(Base):
     key = Column(String, unique=True, nullable=False)
     value = Column(Text)
 
+
+class User(Base):
+    """Table d'authentification (Single User)"""
+    __tablename__ = 'users'
+    
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

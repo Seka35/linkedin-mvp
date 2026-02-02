@@ -5,11 +5,14 @@ Application Flask pour l'interface web du bot LinkedIn.
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import sys
 import os
+import bcrypt
+from functools import wraps
 
 # Ajouter le dossier parent au path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database import init_db, SessionLocal, Prospect, Campaign, Action, Settings, Account
+from database.models import User
 from services.scraper import LinkedInScraper
 from services.linkedin_bot import LinkedInBot
 from services.ai_service import AIService
@@ -42,11 +45,25 @@ bot = None
 
 from flask import g, session
 
+def login_required(f):
+    """Decorator to protect routes - redirect to login if not authenticated"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.before_request
 def load_account():
     """Charger le compte actif pour la requête"""
-    if request.endpoint and 'static' in request.endpoint:
+    # Skip authentication check for static files and login page
+    if request.endpoint and ('static' in request.endpoint or request.endpoint == 'login'):
         return
+    
+    # Check if user is authenticated
+    if 'user_id' not in session and request.endpoint != 'login':
+        return redirect(url_for('login'))
         
     db = SessionLocal()
     account_id = session.get('account_id')
@@ -74,6 +91,36 @@ def inject_account():
     return dict(current_account=getattr(g, 'account', None), get_all_accounts=get_all_accounts)
 
 from sqlalchemy.orm import joinedload
+
+# Authentication Routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Page de connexion"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        db = SessionLocal()
+        user = db.query(User).filter(User.username == username).first()
+        db.close()
+        
+        if user and bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+            session['user_id'] = user.id
+            return redirect(url_for('index'))
+        else:
+            return render_template('login.html', error="Invalid credentials")
+    
+    # If already logged in, redirect to index
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Déconnexion"""
+    session.clear()
+    return redirect(url_for('login'))
 
 @app.route('/')
 def index():
@@ -586,9 +633,9 @@ def api_prospect_item(prospect_id):
             return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/api/campaigns/<int:campaign_id>', methods=['DELETE'])
-def delete_campaign(campaign_id):
-    """API: Supprimer une campagne"""
+@app.route('/api/campaigns/<int:campaign_id>', methods=['GET', 'PUT', 'DELETE'])
+def api_campaign_item(campaign_id):
+    """API: Gestion unitaire d'une campagne (GET, UPDATE, DELETE)"""
     db = SessionLocal()
     campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
     
@@ -597,17 +644,41 @@ def delete_campaign(campaign_id):
         return jsonify({'error': 'Campaign not found'}), 404
         
     try:
-        db.delete(campaign)
-        db.commit()
-        success = True
+        if request.method == 'GET':
+            data = {
+                'id': campaign.id,
+                'name': campaign.name,
+                'search_query': campaign.search_query,
+                'first_message': campaign.first_message,
+                'message_delay_days': campaign.message_delay_days,
+                'daily_limit': campaign.daily_limit,
+                'use_ai_customization': campaign.use_ai_customization
+            }
+            return jsonify({'success': True, 'campaign': data})
+
+        if request.method == 'PUT':
+            data = request.json
+            campaign.name = data.get('name', campaign.name)
+            campaign.search_query = data.get('search_query', campaign.search_query)
+            campaign.first_message = data.get('first_message', campaign.first_message)
+            campaign.message_delay_days = int(data.get('message_delay_days', campaign.message_delay_days))
+            campaign.daily_limit = int(data.get('daily_limit', campaign.daily_limit))
+            campaign.use_ai_customization = data.get('use_ai_customization', campaign.use_ai_customization)
+            
+            db.commit()
+            return jsonify({'success': True})
+
+        if request.method == 'DELETE':
+            db.delete(campaign)
+            db.commit()
+            return jsonify({'success': True})
+            
     except Exception as e:
-        print(f"❌ Erreur suppression campagne: {e}")
+        print(f"❌ Erreur API Campagne: {e}")
         db.rollback()
-        success = False
+        return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         db.close()
-        
-    return jsonify({'success': success})
 
 @app.route('/api/ai/generate', methods=['POST'])
 def api_ai_generate():
