@@ -20,6 +20,8 @@ services:
       - ./data:/app/data
       # Map logs for easier debugging on host
       - ./logs:/app/logs
+      # Mount .env file for API keys
+      - ./.env:/app/.env:ro
       # Optional: Map source code for development (remove for prod if preferred)
       # - .:/app
       # IMPORTANT: Ensure timezone is correct for Cron
