@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: linkedin_bot_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persist the database and other data
+      - ./data:/app/data
+      # Map logs for easier debugging on host
+      - ./logs:/app/logs
+      # Optional: Map source code for development (remove for prod if preferred)
+      # - .:/app
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    # IMPORTANT: Ensure timezone is correct for Cron
+    # You might need to adjust this depending on your VPS location/need
+    environment:
+      - TZ=Europe/Paris
