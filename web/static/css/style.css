@@ -787,3 +787,85 @@ td a:hover {
         margin-top: 4px;
     }
 }
+/* FINAL COMPACT MOBILE FIX */
+@media (max-width: 768px) {
+    /* Filters: Wrap instead of scroll */
+    .filter-bar {
+        flex-wrap: wrap !important;
+        overflow-x: visible !important;
+        white-space: normal !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        padding-bottom: 0 !important;
+    }
+    
+    .filter-btn {
+        flex: 0 0 auto !important;
+        font-size: 0.75rem !important;
+        padding: 5px 10px !important;
+    }
+
+    /* Tighter Card Layout */
+    .prospects-page tr {
+        grid-template-columns: 60px 1fr !important;
+        gap: 4px 10px !important;
+        padding: 10px !important;
+        margin-bottom: 10px !important;
+    }
+
+    /* Avatar */
+    .prospects-page .avatar-cell {
+        padding-top: 5px !important;
+        justify-content: center !important;
+        align-items: flex-start !important;
+    }
+    .prospects-page .avatar-img {
+        width: 50px !important;
+        height: 50px !important;
+    }
+
+    /* Name Area */
+    .prospects-page td:nth-child(2) {
+        align-self: end !important;
+        padding-bottom: 2px !important;
+    }
+    .prospects-page .name-text {
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+    }
+
+    /* Title Area */
+    .prospects-page td:nth-child(3) {
+        padding: 0 0 5px 0 !important;
+        font-size: 0.8rem !important;
+        line-height: 1.2 !important;
+    }
+
+    /* Actions Area - Compact */
+    .prospects-page .actions-cell {
+        margin-top: 5px !important;
+        padding-top: 5px !important;
+        border-top: 1px dashed #eee !important;
+    }
+    
+    /* Small Buttons in Row */
+    .prospects-page .btn-tile {
+        flex-direction: row !important;
+        height: 34px !important;
+        min-height: 34px !important;
+        padding: 0 8px !important;
+        gap: 6px !important;
+        font-size: 0.75rem !important;
+    }
+    
+    .prospects-page .tile-icon {
+        font-size: 0.9rem !important;
+    }
+
+    .prospects-page .btn-delete {
+        width: 34px !important;
+        height: 34px !important;
+        flex: 0 0 34px !important;
+        background: #fff0f0 !important;
+    }
+}
