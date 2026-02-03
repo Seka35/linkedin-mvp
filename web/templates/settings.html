@@ -4,6 +4,28 @@
 <div class="settings-page" style="max-width: 800px; margin: 0 auto;">
     <h2>⚙️ Settings</h2>
 
+    <!-- Mobile Account Switcher -->
+    <div class="mobile-show"
+        style="background:white; padding:15px; border-radius:8px; margin-bottom:20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border:1px solid #eee;">
+        <h3 style="margin-top:0; font-size:1rem; margin-bottom:10px; color:#333;">👤 Current Account</h3>
+        {% if current_account %}
+        <form action="/accounts/switch" method="POST" style="margin:0;">
+            <select name="account_id" onchange="this.form.submit()"
+                style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc; background:white; font-size:1rem;">
+                {% for acc in get_all_accounts() %}
+                <option value="{{ acc.id }}" {% if current_account.id==acc.id %}selected{% endif %}>
+                    {{ acc.name or acc.email }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+        <div style="margin-top:10px; text-align:right;">
+            <a href="/accounts" style="font-size:0.9rem; color:#1976d2; text-decoration:none; font-weight:500;">Manage
+                Connected Accounts →</a>
+        </div>
+        {% endif %}
+    </div>
+
     {% if saved %}
     <div style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
         ✅ Settings saved successfully!

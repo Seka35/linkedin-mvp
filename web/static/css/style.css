@@ -558,3 +558,207 @@ td a:hover {
         overflow-x: hidden;
     }
 }
+
+/* Mobile Refinements: Prospects & Messages */
+@media (max-width: 768px) {
+    /* --- PROSPECTS CARDS --- */
+    .prospects-page tr {
+        display: grid;
+        grid-template-columns: 70px 1fr;
+        grid-template-rows: auto auto auto;
+        grid-template-areas: 
+            "avatar name"
+            "avatar title"
+            "actions actions";
+        gap: 5px 15px;
+        padding: 15px;
+        align-items: center;
+        border: 1px solid #eee;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    }
+
+    /* Avatar fixed size */
+    .prospects-page .avatar-cell {
+        grid-area: avatar;
+        width: 60px;
+        height: 60px;
+        justify-self: center;
+        align-self: flex-start; /* Align top */
+    }
+    
+    .prospects-page .avatar-img {
+        width: 60px;
+        height: 60px;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    /* Name & Link */
+    .prospects-page td:nth-child(2) {
+        grid-area: name;
+        display: flex;
+        flex-direction: row; /* Side by side on mobile if space allows, or wrap */
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 0 !important;
+        border: none !important;
+    }
+
+    .prospects-page .name-text {
+        font-size: 1rem;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .prospects-page .linkedin-link {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        line-height: normal;
+        background: #f0f7ff;
+        border: 1px solid #d0e4ff;
+    }
+
+    /* Headline/Title */
+    .prospects-page td:nth-child(3) {
+        grid-area: title;
+        padding: 0 !important;
+        border: none !important;
+        font-size: 0.85rem;
+        color: #666;
+        line-height: 1.3;
+        align-self: start;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* Limit to 2 lines */
+        -webkit-box-orient: vertical;
+    }
+
+    /* Actions Row */
+    .prospects-page .actions-cell {
+        grid-area: actions;
+        margin-top: 10px;
+        padding-top: 10px !important;
+        border-top: 1px dashed #eee !important;
+    }
+
+    .prospects-page .actions-flex {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .prospects-page .btn-tile {
+        flex: 1;
+        height: 38px; /* Slightly smaller */
+        font-size: 0.75rem;
+    }
+    
+    .prospects-page .btn-delete {
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
+    }
+
+    /* --- MESSAGES MOBILE --- */
+    /* Target the table in messages-page */
+    .messages-page table, .messages-page tbody {
+        display: block;
+        width: 100%;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .messages-page tr {
+        display: grid;
+        grid-template-columns: 50px 1fr auto;
+        grid-template-areas:
+            "avatar name status"
+            "avatar msg msg"
+            "date date date";
+        gap: 5px 10px;
+        background: white;
+        margin-bottom: 12px;
+        padding: 12px;
+        border-radius: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        border: 1px solid #eee;
+    }
+
+    /* Avatar */
+    .messages-page td:nth-child(2) { /* Avatar is 2nd column in HTML */
+        grid-area: avatar;
+        padding: 0 !important;
+        border: none !important;
+    }
+
+    .messages-page td:nth-child(2) img {
+        width: 45px !important;
+        height: 45px !important;
+    }
+
+    /* Name (Prospect) */
+    .messages-page td:nth-child(3) {
+        grid-area: name;
+        padding: 0 !important;
+        border: none !important;
+        align-self: center;
+    }
+    
+    .messages-page td:nth-child(3) strong {
+        font-size: 0.95rem; 
+        color: #333;
+    }
+    
+    .messages-page td:nth-child(3) span {
+        display: none; /* Hide headline in message list to save space */
+    }
+
+    /* Status badge */
+    .messages-page td:nth-child(5) {
+        grid-area: status;
+        padding: 0 !important;
+        border: none !important;
+        justify-self: end;
+        align-self: center;
+    }
+    
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: #eee;
+    }
+
+    /* Message Preview */
+    .messages-page td:nth-child(4) {
+        grid-area: msg;
+        padding: 0 !important;
+        border: none !important;
+    }
+
+    .messages-page td:nth-child(4) div {
+        background: #f7f9fa !important;
+        color: #555;
+        font-size: 0.85rem;
+        padding: 8px !important;
+        border-radius: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    /* Date footer */
+    .messages-page td:nth-child(1) {
+        grid-area: date;
+        padding: 0 !important;
+        border: none !important;
+        font-size: 0.75rem;
+        color: #999;
+        text-align: right;
+        margin-top: 4px;
+    }
+}
