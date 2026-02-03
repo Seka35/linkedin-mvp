@@ -455,8 +455,8 @@ td a:hover {
         position: relative;
         padding: 12px 15px;
         padding-left: 15px;
-        height: auto;
-        /* Reset fixed height */
+        height: auto !important;
+        /* Force reset of fixed heights */
     }
 
     td:last-child {
@@ -828,11 +828,16 @@ td a:hover {
     /* Avatar fixed size */
     .prospects-page .avatar-cell {
         grid-area: avatar;
-        width: 40px;
-        height: 40px;
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px;
+        padding: 0 !important;
+        /* Remove padding to fix alignment */
+        border: none !important;
         justify-self: center;
-        align-self: start;
-        margin-top: 3px;
+        align-self: center;
+        /* Center vertically relative to content block */
+        margin-top: 0;
     }
 
     .prospects-page .avatar-img {
@@ -845,6 +850,9 @@ td a:hover {
     /* Name & Link */
     .prospects-page td:nth-child(2) {
         grid-area: name;
+        padding: 0 !important;
+        /* Remove padding */
+        border: none !important;
         display: flex;
         flex-direction: row;
         flex-wrap: nowrap;
@@ -907,6 +915,8 @@ td a:hover {
         grid-area: actions;
         margin-top: 0;
         padding-top: 4px !important;
+        padding-bottom: 4px !important;
+        /* Remove extra space below buttons */
         border-top: 1px dashed #eee !important;
     }
 
