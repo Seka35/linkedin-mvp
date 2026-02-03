@@ -86,6 +86,19 @@
                 </div>
             </div>
 
+
+            <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 15px;">
+                <label style="font-weight: 600; margin-bottom: 5px; display: block;">Custom User Agent
+                    (Optional)</label>
+                <input type="text" name="user_agent" value="{{ current_account.user_agent or '' }}"
+                    placeholder="e.g. Mozilla/5.0 (Windows NT 10.0; Win64; x64)..."
+                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 0.9em;">
+                <p style="font-size: 0.8em; color: #888; margin-top: 5px;">
+                    Leave empty to use the default User-Agent (Firefox Linux). Use this to match your cookie's original
+                    session environment.
+                </p>
+            </div>
+
             <div
                 style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed #ddd; padding-top: 10px;">
                 <div id="proxy_result_{{ current_account.id }}" style="font-size: 0.9rem; color: #666;">
@@ -96,19 +109,6 @@
                     📡 Test Proxy / IP
                 </button>
             </div>
-    </div>
-
-    <!-- User Agent Configuration -->
-    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-        <label style="font-weight: 600; margin-bottom: 5px; display: block;">Custom User Agent
-            (Optional)</label>
-        <input type="text" name="user_agent" value="{{ current_account.user_agent or '' }}"
-            placeholder="e.g. Mozilla/5.0 (Windows NT 10.0; Win64; x64)..."
-            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 0.9em;">
-        <p style="font-size: 0.8em; color: #888; margin-top: 5px;">
-            Leave empty to use the default User-Agent (Firefox Linux). Use this to match your cookie's original
-            session environment.
-        </p>
     </div>
 
     <div style="text-align: right;">

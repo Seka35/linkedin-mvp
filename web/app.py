@@ -955,8 +955,8 @@ def check_proxy(account_id):
     """Vérifier la connexion proxy pour un compte spécifique"""
     db = SessionLocal()
     try:
-        # Vérifier que le compte appartient à l'utilisateur
-        account = db.query(Account).filter(Account.id == account_id, Account.user_id == session['user_id']).first()
+        # Vérifier que le compte existe
+        account = db.query(Account).filter(Account.id == account_id).first()
         if not account:
             return jsonify({'success': False, 'error': 'Compte introuvable'}), 404
 
