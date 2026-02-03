@@ -109,66 +109,64 @@
                     📡 Test Proxy / IP
                 </button>
             </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Account Settings</button>
+            </div>
+        </form>
     </div>
+    {% endif %}
 
-    <div style="text-align: right;">
-        <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Account Settings</button>
+    <!-- Account AI Settings -->
+    {% if current_account %}
+    <div class="card"
+        style="width: 100%; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; border-left: 5px solid #1976d2;">
+        <h3>🤖 Custom AI Prompt for <span style="color: #1976d2;">{{ current_account.name }}</span></h3>
+        <p style="color: #666; margin-bottom: 20px;">
+            Override the default prompt for this specific account. Leave empty to use the Default Configuration below.
+        </p>
+        <form method="POST" action="/settings/account" style="display: block;">
+            <input type="hidden" name="update_prompt" value="true">
+            <div class="form-group">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px;">System Prompt
+                    (Personnalisé)</label>
+                <textarea name="system_prompt" rows="12" placeholder="You are a CEO..."
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; line-height: 1.4;">{{ current_account.system_prompt or '' }}</textarea>
+                <p style="font-size: 0.8em; color: #888; margin-top: 5px;">Si vide, le prompt global ci-dessous sera
+                    utilisé.</p>
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Account Prompt</button>
+            </div>
+        </form>
     </div>
-    </form>
-</div>
-{% endif %}
+    {% endif %}
 
-<!-- Account AI Settings -->
-{% if current_account %}
-<div class="card"
-    style="width: 100%; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; border-left: 5px solid #1976d2;">
-    <h3>🤖 Custom AI Prompt for <span style="color: #1976d2;">{{ current_account.name }}</span></h3>
-    <p style="color: #666; margin-bottom: 20px;">
-        Override the default prompt for this specific account. Leave empty to use the Default Configuration below.
-    </p>
-    <form method="POST" action="/settings/account" style="display: block;">
-        <input type="hidden" name="update_prompt" value="true">
-        <div class="form-group">
-            <label style="font-weight: 600; display: block; margin-bottom: 8px;">System Prompt
-                (Personnalisé)</label>
-            <textarea name="system_prompt" rows="12" placeholder="You are a CEO..."
-                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; line-height: 1.4;">{{ current_account.system_prompt or '' }}</textarea>
-            <p style="font-size: 0.8em; color: #888; margin-top: 5px;">Si vide, le prompt global ci-dessous sera
-                utilisé.</p>
-        </div>
-        <div style="margin-top: 20px; text-align: right;">
-            <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Account Prompt</button>
-        </div>
-    </form>
-</div>
-{% endif %}
+    <!-- Global Settings -->
+    <div class="card"
+        style="background: #f8f9fa; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e9ecef;">
+        <h3>🌎 Default Configuration (Fallback)</h3>
+        <p style="color: #666; margin-bottom: 20px;">
+            Customize the system prompt used by the AI to generate connection messages (applies to all accounts unless
+            overridden).
+        </p>
 
-<!-- Global Settings -->
-<div class="card"
-    style="background: #f8f9fa; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e9ecef;">
-    <h3>🌎 Default Configuration (Fallback)</h3>
-    <p style="color: #666; margin-bottom: 20px;">
-        Customize the system prompt used by the AI to generate connection messages (applies to all accounts unless
-        overridden).
-    </p>
+        <form method="POST" action="/settings" style="display: block;">
+            <div class="form-group">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px;">System Prompt / Template</label>
+                <p style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">
+                    This prompt is used for all accounts unless a custom prompt is defined above.
+                    Use placeholders: <code>{name}</code>, <code>{headline}</code>, <code>{summary}</code>,
+                    <code>{experience}</code>.
+                </p>
+                <textarea name="system_prompt" rows="12"
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; line-height: 1.4;">{{ system_prompt }}</textarea>
+            </div>
 
-    <form method="POST" action="/settings" style="display: block;">
-        <div class="form-group">
-            <label style="font-weight: 600; display: block; margin-bottom: 8px;">System Prompt / Template</label>
-            <p style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">
-                This prompt is used for all accounts unless a custom prompt is defined above.
-                Use placeholders: <code>{name}</code>, <code>{headline}</code>, <code>{summary}</code>,
-                <code>{experience}</code>.
-            </p>
-            <textarea name="system_prompt" rows="12"
-                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; line-height: 1.4;">{{ system_prompt }}</textarea>
-        </div>
-
-        <div style="margin-top: 20px; text-align: right;">
-            <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Global Prompt</button>
-        </div>
-    </form>
-</div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Global Prompt</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
