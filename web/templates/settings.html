@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="settings-page" style="max-width: 800px; margin: 0 auto;">
-    <h2>⚙️ Settings</h2>
+<div class="settings-page" style="max-width: 1000px; margin: 0 auto;">
+    <h2>⚙️ Settings (Updated Layout)</h2>
 
     <!-- Mobile Account Switcher -->
     <div class="mobile-show"
@@ -42,7 +42,7 @@
             Configure session cookie and proxy settings for this account.
         </p>
 
-        <form method="POST" action="/settings/account">
+        <form method="POST" action="/settings/account" style="display: block;">
             <div class="form-group" style="margin-bottom: 20px;">
                 <label style="font-weight: 600; display: block; margin-bottom: 8px;">LinkedIn Session Cookie
                     (li_at)</label>
@@ -126,7 +126,7 @@
     <p style="color: #666; margin-bottom: 20px;">
         Override the default prompt for this specific account. Leave empty to use the Default Configuration below.
     </p>
-    <form method="POST" action="/settings/account">
+    <form method="POST" action="/settings/account" style="display: block;">
         <input type="hidden" name="update_prompt" value="true">
         <div class="form-group">
             <label style="font-weight: 600; display: block; margin-bottom: 8px;">System Prompt
@@ -152,7 +152,7 @@
         overridden).
     </p>
 
-    <form method="POST" action="/settings">
+    <form method="POST" action="/settings" style="display: block;">
         <div class="form-group">
             <label style="font-weight: 600; display: block; margin-bottom: 8px;">System Prompt / Template</label>
             <p style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">
