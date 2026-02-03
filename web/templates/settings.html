@@ -131,12 +131,12 @@
         <div class="form-group">
             <label style="font-weight: 600; display: block; margin-bottom: 8px;">System Prompt
                 (Personnalisé)</label>
-            <textarea name="system_prompt" rows="8" placeholder="You are a CEO..."
+            <textarea name="system_prompt" rows="12" placeholder="You are a CEO..."
                 style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; line-height: 1.4;">{{ current_account.system_prompt or '' }}</textarea>
             <p style="font-size: 0.8em; color: #888; margin-top: 5px;">Si vide, le prompt global ci-dessous sera
                 utilisé.</p>
         </div>
-        <div style="text-align: right; margin-top: 15px;">
+        <div style="margin-top: 20px; text-align: right;">
             <button type="submit" class="btn-primary" style="padding: 10px 25px;">Save Account Prompt</button>
         </div>
     </form>
