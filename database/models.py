@@ -118,7 +118,8 @@ class Action(Base):
     campaign_id = Column(Integer, ForeignKey('campaigns.id'), nullable=True)
     
     # Type d'action
-    action_type = Column(String)  # visit, connect, comment, message
+    action_type = Column(String)  # visit, connect, comment, message, scrape
+    source = Column(String)  # manual, campaign
     
     # Détails
     message_sent = Column(Text)

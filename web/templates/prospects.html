@@ -5,10 +5,29 @@
     /* Styling (clean & modern) */
     .filter-bar {
         display: flex;
-        gap: 15px;
+        gap: 10px;
         margin-bottom: 25px;
         border-bottom: 1px solid #e0e0e0;
         padding-bottom: 15px;
+        overflow-x: auto;
+        /* Enable horizontal scroll */
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+        /* Prevent wrapping */
+    }
+
+    /* Hide scrollbar for Chrome/Safari/Opera */
+    .filter-bar::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .filter-bar {
+        -ms-overflow-style: none;
+        /* IE and Edge */
+        scrollbar-width: none;
+        /* Firefox */
     }
 
     .filter-btn {
@@ -20,6 +39,8 @@
         font-size: 0.95rem;
         background: #f5f5f5;
         transition: all 0.2s;
+        flex-shrink: 0;
+        /* Prevent shrinking */
     }
 
     .filter-btn:hover {

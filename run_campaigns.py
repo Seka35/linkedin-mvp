@@ -236,6 +236,7 @@ def send_connections(db, campaign):
                     prospect_id=prospect.id,
                     campaign_id=campaign.id,
                     action_type='connect',
+                    source='campaign', # <--- SOURCE CAMPAIGN
                     status='success',
                     error_message=f"Outcome: {status_code}",
                     executed_at=datetime.now()
@@ -255,6 +256,7 @@ def send_connections(db, campaign):
                     prospect_id=prospect.id,
                     campaign_id=campaign.id,
                     action_type='connect',
+                    source='campaign', # <--- SOURCE CAMPAIGN
                     status='failed',
                     error_message=f"Bot returned False",
                     executed_at=datetime.now()
@@ -445,6 +447,7 @@ def send_messages(db, campaign):
                     prospect_id=prospect.id,
                     campaign_id=campaign.id,
                     action_type='message',
+                    source='campaign', # <--- SOURCE CAMPAIGN
                     message_sent=message,
                     status='success',
                     executed_at=datetime.now()
@@ -468,6 +471,7 @@ def send_messages(db, campaign):
                     prospect_id=prospect.id,
                     campaign_id=campaign.id,
                     action_type='message',
+                    source='campaign', # <--- SOURCE CAMPAIGN
                     status='failed',
                     error_message="Bot returned False",
                     executed_at=datetime.now()

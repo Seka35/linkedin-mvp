@@ -76,8 +76,10 @@
             <thead>
                 <tr>
                     <th>Date</th>
+                    <th>Source</th>
                     <th>Action</th>
                     <th>Prospect</th>
+                    <th>Campaign</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -85,8 +87,34 @@
                 {% for action in recent_actions %}
                 <tr>
                     <td>{{ action.executed_at.strftime('%m/%d %H:%M') }}</td>
-                    <td>{{ action.action_type }}</td>
-                    <td>{{ action.prospect.full_name }}</td>
+                    <td>
+                        {% if action.source == 'manual' %}
+                        <span
+                            style="background:#e3f2fd; color:#1976d2; padding:2px 6px; border-radius:4px; font-size:0.8rem;">Manual</span>
+                        {% elif action.source == 'campaign' %}
+                        <span
+                            style="background:#e8f5e9; color:#2e7d32; padding:2px 6px; border-radius:4px; font-size:0.8rem;">Auto</span>
+                        {% else %}
+                        <span style="color:#777; font-size:0.8rem;">-</span>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ action.action_type }}</strong></td>
+                    <td>
+                        {% if action.prospect %}
+                        {{ action.prospect.full_name }}
+                        {% else %}
+                        <span style="color:#777;">(Batch/System)</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if action.campaign %}
+                        <span
+                            style="color:#555; background:#f5f5f5; padding:2px 5px; border-radius:4px; font-size:0.85rem;">{{
+                            action.campaign.name }}</span>
+                        {% else %}
+                        <span style="color:#ccc;">-</span>
+                        {% endif %}
+                    </td>
                     <td class="status-{{ action.status }}">{{ action.status }}</td>
                 </tr>
                 {% endfor %}

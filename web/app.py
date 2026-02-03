@@ -138,7 +138,10 @@ def index():
     
     # Eager load 'prospect' to avoid DetachedInstanceError after db.close()
     # Eager load 'prospect' to avoid DetachedInstanceError after db.close()
-    recent_actions = db.query(Action).join(Prospect).filter(Prospect.account_id == account_id).options(joinedload(Action.prospect)).order_by(Action.executed_at.desc()).limit(10).all()
+    recent_actions = db.query(Action).join(Prospect).filter(Prospect.account_id == account_id).options(
+        joinedload(Action.prospect),
+        joinedload(Action.campaign)
+    ).order_by(Action.executed_at.desc()).limit(20).all()
     
     db.close()
     
@@ -292,9 +295,31 @@ def api_scrape():
     print(f"🌍 API Scrape request: {query} (Account: {g.account.id})")
     results = scraper.search_prospects(query, use_apify, max_results, account_id=g.account.id)
     
-    # Sauvegarder en DB (déjà géré dans search_prospects, mais utile pour stats retour)
-    # On sait que scraper.search_prospects retourne la liste trouvée et sauvegarde.
-    
+    # LOG ACTION: Scrape
+    # To avoid DB schema change for prospect_id nullable right now (complex with SQLite foreign keys),
+    # I will log the action attached to the first prospect found.
+    if results and len(results) > 0:
+        try:
+             db = SessionLocal()
+             # Find the first prospect that was just added/updated by the scraper
+             # This assumes scraper.search_prospects returns dicts with 'linkedin_url'
+             first_prospect_data = results[0]
+             first_prospect = db.query(Prospect).filter(Prospect.linkedin_url == first_prospect_data['linkedin_url']).first()
+             if first_prospect:
+                 action = Action(
+                     prospect_id=first_prospect.id,
+                     action_type='scrape',
+                     source='manual',
+                     status='success',
+                     message_sent=f"Scraped batch of {len(results)} profiles for query: '{query}'",
+                     executed_at=datetime.utcnow()
+                 )
+                 db.add(action)
+                 db.commit()
+             db.close()
+        except Exception as e:
+            print(f"Error logging scrape: {e}")
+
     # Enrichissement automatique
     try:
         # Import local pour éviter les problèmes cirk
@@ -381,9 +406,11 @@ def api_connect():
     action = Action(
         prospect_id=prospect.id,
         action_type='connect',
+        source='manual', # <--- ADDED SOURCE
         message_sent=message,
         status='success' if success else 'failed',
-        error_message=f"Outcome: {status_code}" # On note le résultat (followed/connected) ici
+        error_message=f"Outcome: {status_code}", # On note le résultat (followed/connected) ici
+        executed_at=datetime.utcnow()
     )
     db.add(action)
     
@@ -458,8 +485,10 @@ def api_message():
     action = Action(
         prospect_id=prospect.id,
         action_type='message',
+        source='manual', # <--- ADDED SOURCE
         message_sent=message,
-        status='success' if success else 'failed'
+        status='success' if success else 'failed',
+        executed_at=datetime.utcnow()
     )
     db.add(action)
     
