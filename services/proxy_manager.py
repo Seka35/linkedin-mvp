@@ -24,9 +24,13 @@ class ProxyManager:
             return None
         
         # Format Playwright: server séparé des credentials
-        # Pour HTTPS, on utilise http:// comme protocole du proxy (standard)
+        # Détection du protocole (http:// ou socks5://)
+        host = self.host
+        if '://' not in host:
+             host = f'http://{host}'
+             
         proxy_config = {
-            'server': f'http://{self.host}:{self.port}',
+            'server': f'{host}:{self.port}',
             'username': self.username,
             'password': self.password
         }
