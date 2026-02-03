@@ -43,6 +43,15 @@ body {
     align-items: center;
 }
 
+.navbar .logo-container {
+    flex: 1;
+}
+
+.navbar .account-switcher {
+    flex: 1;
+    justify-content: flex-end;
+}
+
 .navbar h1 {
     font-size: 1.25rem;
     color: var(--primary-color);
@@ -54,6 +63,7 @@ body {
     display: flex;
     list-style: none;
     gap: 1.5rem;
+    justify-content: center;
 }
 
 .navbar a {
@@ -338,7 +348,31 @@ td a:hover {
     /* Hidden on desktop */
 }
 
+/* Mobile Header */
+.mobile-header {
+    display: none;
+    background: white;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    justify-content: flex-start;
+    padding-left: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.mobile-header img {
+    height: 32px;
+    width: 32px;
+    object-fit: contain;
+}
+
 @media (max-width: 768px) {
+    .mobile-header {
+        display: flex;
+    }
 
     /* Hide Desktop Nav */
     .desktop-nav {
@@ -787,8 +821,10 @@ td a:hover {
         margin-top: 4px;
     }
 }
+
 /* FINAL COMPACT MOBILE FIX */
 @media (max-width: 768px) {
+
     /* Filters: Wrap instead of scroll */
     .filter-bar {
         flex-wrap: wrap !important;
@@ -798,7 +834,7 @@ td a:hover {
         gap: 6px !important;
         padding-bottom: 0 !important;
     }
-    
+
     .filter-btn {
         flex: 0 0 auto !important;
         font-size: 0.75rem !important;
@@ -819,6 +855,7 @@ td a:hover {
         justify-content: center !important;
         align-items: flex-start !important;
     }
+
     .prospects-page .avatar-img {
         width: 50px !important;
         height: 50px !important;
@@ -829,6 +866,7 @@ td a:hover {
         align-self: end !important;
         padding-bottom: 2px !important;
     }
+
     .prospects-page .name-text {
         font-size: 0.95rem !important;
         font-weight: 600 !important;
@@ -847,7 +885,7 @@ td a:hover {
         padding-top: 5px !important;
         border-top: 1px dashed #eee !important;
     }
-    
+
     /* Small Buttons in Row */
     .prospects-page .btn-tile {
         flex-direction: row !important;
@@ -857,7 +895,7 @@ td a:hover {
         gap: 6px !important;
         font-size: 0.75rem !important;
     }
-    
+
     .prospects-page .tile-icon {
         font-size: 0.9rem !important;
     }
@@ -872,6 +910,7 @@ td a:hover {
 
 /* Campaign Mobile Fixes & Global Spacing */
 @media (max-width: 768px) {
+
     /* Global Spacing to prevent colliding with top */
     main.container {
         padding-top: 20px !important;
@@ -885,18 +924,19 @@ td a:hover {
     }
 
     /* Campaign Header & Stats */
-    .campaign-card > div:first-child {
+    .campaign-card>div:first-child {
         width: 100% !important;
     }
 
     /* Campaign Actions (Right part becomes Bottom part) */
-    .campaign-card > div:last-child {
+    .campaign-card>div:last-child {
         margin-left: 0 !important;
         padding-left: 0 !important;
         border-left: none !important;
         border-top: 1px solid #f0f0f0 !important;
         padding-top: 15px !important;
-        flex-direction: row !important; /* Row of buttons? Or Grid? */
+        flex-direction: row !important;
+        /* Row of buttons? Or Grid? */
         flex-wrap: wrap !important;
         flex: auto !important;
     }
@@ -904,7 +944,8 @@ td a:hover {
     /* Action Buttons on Mobile */
     .campaign-card .btn-action {
         flex: 1 !important;
-        width: auto !important; /* Let them grow */
+        width: auto !important;
+        /* Let them grow */
         margin-right: 0 !important;
         margin-bottom: 5px !important;
         font-size: 0.8rem !important;
@@ -913,14 +954,16 @@ td a:hover {
 
     /* Stats Grid inside Campaign Card */
     .campaign-card .icon-badge {
-        flex: 1 1 100% !important; /* Stack stats or 50%? */
+        flex: 1 1 100% !important;
+        /* Stack stats or 50%? */
         font-size: 0.75rem !important;
         justify-content: flex-start !important;
     }
-    
+
     /* Horizontal Details Stack */
-    .campaign-card > div:first-child > div:nth-child(2) {
-        flex-direction: column !important; /* Query, Delay, Limit stack */
+    .campaign-card>div:first-child>div:nth-child(2) {
+        flex-direction: column !important;
+        /* Query, Delay, Limit stack */
         align-items: flex-start !important;
         gap: 5px !important;
     }

@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinkedIn Automation MVP</title>
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.png') }}" type="image/png">
     <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- Google Fonts -->
@@ -14,10 +15,21 @@
 </head>
 
 <body>
+    <!-- Mobile Header (Mobile Only) -->
+    <div class="mobile-header">
+        <a href="/">
+            <img src="{{ url_for('static', filename='img/favicon.png') }}" alt="Logo">
+        </a>
+    </div>
+
     <!-- Top Navbar (Desktop Only) -->
     <nav class="navbar desktop-nav">
         <div class="container">
-            <h1>LinkedIn Automate</h1>
+            <a href="/" class="logo-container"
+                style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px;">
+                <img src="{{ url_for('static', filename='img/favicon.png') }}" alt="Logo"
+                    style="height: 32px; width: 32px; object-fit: contain;">
+            </a>
             <ul>
                 <a href="/" class="nav-link">Dashboard</a>
                 <a href="/prospects" class="nav-link">Prospects</a>
