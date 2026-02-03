@@ -869,3 +869,59 @@ td a:hover {
         background: #fff0f0 !important;
     }
 }
+
+/* Campaign Mobile Fixes & Global Spacing */
+@media (max-width: 768px) {
+    /* Global Spacing to prevent colliding with top */
+    main.container {
+        padding-top: 20px !important;
+    }
+
+    /* Campaigns Card Stack */
+    .campaign-card {
+        flex-direction: column !important;
+        padding: 15px !important;
+        gap: 15px !important;
+    }
+
+    /* Campaign Header & Stats */
+    .campaign-card > div:first-child {
+        width: 100% !important;
+    }
+
+    /* Campaign Actions (Right part becomes Bottom part) */
+    .campaign-card > div:last-child {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        border-left: none !important;
+        border-top: 1px solid #f0f0f0 !important;
+        padding-top: 15px !important;
+        flex-direction: row !important; /* Row of buttons? Or Grid? */
+        flex-wrap: wrap !important;
+        flex: auto !important;
+    }
+
+    /* Action Buttons on Mobile */
+    .campaign-card .btn-action {
+        flex: 1 !important;
+        width: auto !important; /* Let them grow */
+        margin-right: 0 !important;
+        margin-bottom: 5px !important;
+        font-size: 0.8rem !important;
+        white-space: nowrap !important;
+    }
+
+    /* Stats Grid inside Campaign Card */
+    .campaign-card .icon-badge {
+        flex: 1 1 100% !important; /* Stack stats or 50%? */
+        font-size: 0.75rem !important;
+        justify-content: flex-start !important;
+    }
+    
+    /* Horizontal Details Stack */
+    .campaign-card > div:first-child > div:nth-child(2) {
+        flex-direction: column !important; /* Query, Delay, Limit stack */
+        align-items: flex-start !important;
+        gap: 5px !important;
+    }
+}
