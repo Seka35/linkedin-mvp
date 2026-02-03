@@ -597,40 +597,249 @@ td a:hover {
     }
 }
 
+
+/* --- CAMPAIGN CARDS (DESKTOP) --- */
+.campaign-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    margin-bottom: 25px;
+    padding: 25px;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    background: white;
+    width: 100%;
+    transition: box-shadow 0.2s;
+}
+
+.campaign-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.campaign-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 8px;
+}
+
+.campaign-header h3 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #202124;
+}
+
+.campaign-header .ai-badge {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 4px;
+    padding: 2px 8px;
+}
+
+.campaign-header .created-date {
+    color: #5f6368;
+    font-size: 0.85rem;
+    margin-left: auto;
+}
+
+.campaign-details {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    font-size: 0.95rem;
+    color: #3c4043;
+    margin-top: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.campaign-details .detail-item {
+    flex: 1;
+}
+
+.campaign-details .detail-item:first-child {
+    flex: 2;
+}
+
+.campaign-stats {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.campaign-stats .icon-badge {
+    flex: 1;
+    justify-content: center;
+}
+
+.campaign-actions {
+    flex: 0 0 160px;
+    margin-left: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-left: 1px solid #f0f0f0;
+    padding-left: 20px;
+    justify-content: center;
+}
+
+.campaign-actions .btn-action {
+    width: 100%;
+    justify-content: center;
+}
+
+.campaign-actions .log-btn {
+    color: #5f6368;
+    border-color: #dadce0;
+}
+
+.campaign-actions .delete-btn {
+    color: #d93025;
+    border-color: #fce8e6;
+    background: #fff;
+    margin-top: auto;
+}
+
+.campaign-actions .delete-btn:hover {
+    background: #fce8e6;
+}
+
+/* --- MOBILE CAMPAIGN OPTIMIZATIONS --- */
+@media (max-width: 768px) {
+    .campaign-card {
+        flex-direction: column;
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .campaign-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .campaign-header h3 {
+        width: 100%;
+        margin-bottom: 4px;
+        font-size: 1.3rem;
+    }
+
+    .campaign-header .created-date {
+        margin-left: 0;
+        width: 100%;
+        font-size: 0.8rem;
+    }
+
+    .campaign-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        margin-top: 8px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .campaign-details .detail-item {
+        width: 100%;
+        flex: auto;
+    }
+
+    /* Stats: Force 3 equal columns */
+    .campaign-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        margin-bottom: 12px;
+        width: 100%;
+    }
+
+    .campaign-stats .icon-badge {
+        font-size: 0.75rem;
+        padding: 5px 2px !important;
+        margin: 0 !important;
+        white-space: nowrap;
+        text-align: center;
+        width: 100%;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-direction: row;
+        gap: 6px;
+        /* Space between icon and text */
+    }
+
+    /* Actions: 2 columns grid */
+    .campaign-actions {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .campaign-actions .btn-action {
+        width: 100%;
+        margin-bottom: 0;
+        display: flex;
+        /* Force flex */
+        justify-content: center;
+        /* Center horizontally */
+        align-items: center;
+        /* Center vertically */
+        text-align: center;
+    }
+}
+
 /* Mobile Refinements: Prospects & Messages */
 @media (max-width: 768px) {
 
     /* --- PROSPECTS CARDS --- */
+    /* --- PROSPECTS CARDS --- */
     .prospects-page tr {
         display: grid;
-        grid-template-columns: 70px 1fr;
+        grid-template-columns: 40px 1fr;
         grid-template-rows: auto auto auto;
         grid-template-areas:
             "avatar name"
             "avatar title"
             "actions actions";
-        gap: 5px 15px;
-        padding: 15px;
-        align-items: center;
+        gap: 0 8px;
+        /* Remove vertical gap */
+        padding: 5px;
+        /* Minimal padding */
+        align-items: start;
+        /* Align to top to reduce height */
         border: 1px solid #eee;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        margin-bottom: 4px;
+        /* Tighter vertical stack */
     }
 
     /* Avatar fixed size */
     .prospects-page .avatar-cell {
         grid-area: avatar;
-        width: 60px;
-        height: 60px;
+        width: 40px;
+        height: 40px;
         justify-self: center;
-        align-self: flex-start;
-        /* Align top */
+        align-self: start;
+        margin-top: 3px;
     }
 
     .prospects-page .avatar-img {
-        width: 60px;
-        height: 60px;
-        border: 2px solid #fff;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        width: 40px;
+        height: 40px;
+        border: 1px solid #fff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
     /* Name & Link */
@@ -638,26 +847,37 @@ td a:hover {
         grid-area: name;
         display: flex;
         flex-direction: row;
-        /* Side by side on mobile if space allows, or wrap */
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        /* Prevent wrapping */
         align-items: center;
-        gap: 8px;
+        gap: 4px;
         padding: 0 !important;
         border: none !important;
+        margin-bottom: 0px;
+        height: 20px;
+        /* Force small height */
+        overflow: hidden;
     }
 
     .prospects-page .name-text {
-        font-size: 1rem;
+        font-size: 0.85rem;
         margin: 0;
-        line-height: 1.2;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .prospects-page .linkedin-link {
-        font-size: 0.75rem;
-        padding: 2px 8px;
-        line-height: normal;
+        font-size: 0.6rem;
+        padding: 0px 4px;
+        line-height: 1;
         background: #f0f7ff;
         border: 1px solid #d0e4ff;
+        height: 14px;
+        display: flex;
+        align-items: center;
     }
 
     /* Headline/Title */
@@ -665,54 +885,59 @@ td a:hover {
         grid-area: title;
         padding: 0 !important;
         border: none !important;
-        font-size: 0.85rem;
-        color: #666;
-        line-height: 1.3;
+        font-size: 0.75rem;
+        color: #777;
+        line-height: 1.1;
         align-self: start;
-        max-width: 100%;
+        width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         display: -webkit-box;
-        -webkit-line-clamp: 2;
-        /* Limit to 2 lines */
+        -webkit-line-clamp: 1;
+        /* Clamp to 1 line */
         -webkit-box-orient: vertical;
+        margin-top: 0;
+        margin-bottom: 4px;
+        height: auto;
+        max-height: 28px;
     }
 
     /* Actions Row */
     .prospects-page .actions-cell {
         grid-area: actions;
-        margin-top: 10px;
-        padding-top: 10px !important;
+        margin-top: 0;
+        padding-top: 4px !important;
         border-top: 1px dashed #eee !important;
     }
 
     .prospects-page .actions-flex {
         display: flex;
         justify-content: space-between;
-        gap: 8px;
+        gap: 4px;
     }
 
     .prospects-page .btn-tile {
         flex: 1;
-        height: auto;
-        /* Allow height to adjust */
-        min-height: 40px;
-        padding: 8px 5px;
-        font-size: 0.75rem;
+        height: 26px;
+        /* Fixed small height */
+        min-height: 0;
+        padding: 0;
+        font-size: 0.7rem;
         display: flex;
-        flex-direction: column;
-        /* Stack icon and text */
+        flex-direction: row;
         align-items: center;
         justify-content: center;
-        gap: 2px;
-        line-height: normal;
+        gap: 3px;
+        line-height: 1;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
     }
 
     .prospects-page .btn-delete {
-        width: 40px;
-        height: 40px;
-        flex: 0 0 40px;
-        /* Fixed width for delete button */
+        width: 26px;
+        height: 26px;
+        flex: 0 0 26px;
         display: flex;
         align-items: center;
         justify-content: center;

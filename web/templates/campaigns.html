@@ -139,87 +139,74 @@
 
     <div class="campaigns-list">
         {% for campaign in campaigns %}
-        <div class="campaign-card"
-            style="display:flex; justify-content:space-between; align-items:stretch; margin-bottom: 25px; padding: 25px; border: 1px solid #e0e0e0; border-radius: 12px; background:white; width:100%; transition: box-shadow 0.2s;">
+        <div class="campaign-card">
 
             <!-- Left Part: Info + Stats -->
-            <div style="flex: 1; display:flex; flex-direction:column; justify-content:space-between;">
+            <div class="campaign-content">
 
                 <!-- Header Card -->
                 <div>
-                    <div style="display:flex; align-items:center; gap: 15px; margin-bottom: 8px;">
-                        <h3 style="margin:0; font-size:1.4rem; color:#202124;">{{ campaign.name }}</h3>
+                    <div class="campaign-header">
+                        <h3>{{ campaign.name }}</h3>
                         {% if campaign.use_ai_customization %}
-                        <span class="badge" title="AI Personalization Active"
-                            style="background:linear-gradient(135deg, #667eea, #764ba2); color:white; font-size: 0.75rem; text-transform:uppercase; letter-spacing:0.5px; border-radius:4px; padding:2px 8px;">✨
-                            AI ON</span>
+                        <span class="badge ai-badge" title="AI Personalization Active">✨ AI ON</span>
                         {% endif %}
-                        <span class="badge badge-{{ campaign.status }}"
-                            style="font-size: 0.75rem; text-transform:uppercase; letter-spacing:0.5px; border-radius:4px;">{{
-                            campaign.status }}</span>
-                        <span style="color:#5f6368; font-size: 0.85rem; margin-left:auto;">Created on {{
-                            campaign.created_at.strftime('%m/%d/%Y') }}</span>
+                        <span class="badge badge-{{ campaign.status }}">{{ campaign.status }}</span>
+                        <span class="created-date">Created on {{ campaign.created_at.strftime('%m/%d/%Y') }}</span>
                     </div>
 
                     <!-- Horizontal Details -->
-                    <div
-                        style="display:flex; align-items:center; gap: 40px; font-size: 0.95rem; color: #3c4043; margin-top: 15px; border-bottom:1px solid #f0f0f0; padding-bottom:15px; margin-bottom:15px;">
-                        <div style="flex:2;"><span class="lbl-detail">🔍 Query:</span> {{ campaign.search_query }}</div>
-                        <div style="flex:1;"><span class="lbl-detail">⏱ Delay:</span> {{ campaign.message_delay_days }}
-                            days</div>
-                        <div style="flex:1;"><span class="lbl-detail">⚡ Limit:</span> {{ campaign.daily_limit }}/day
+                    <div class="campaign-details">
+                        <div class="detail-item"><span class="lbl-detail">🔍 Query:</span> {{ campaign.search_query }}
+                        </div>
+                        <div class="detail-item"><span class="lbl-detail">⏱ Delay:</span> {{ campaign.message_delay_days
+                            }} days</div>
+                        <div class="detail-item"><span class="lbl-detail">⚡ Limit:</span> {{ campaign.daily_limit }}/day
                         </div>
                     </div>
                 </div>
 
                 <!-- Horizontal Stats -->
-                <div style="display: flex; gap: 15px; align-items:center;">
-                    <div class="icon-badge icon-new" title="Targeted Prospects" style="flex:1; justify-content:center;">
+                <div class="campaign-stats">
+                    <div class="icon-badge icon-new" title="Targeted Prospects">
                         👥 {{ campaign.stats_prospects }} targeted
                     </div>
-                    <div class="icon-badge icon-connected" title="Connections sent"
-                        style="flex:1; justify-content:center;">
+                    <div class="icon-badge icon-connected" title="Connections sent">
                         ✅ {{ campaign.stats_connected }} connected
                     </div>
-                    <div class="icon-badge icon-message" title="Messages sent" style="flex:1; justify-content:center;">
+                    <div class="icon-badge icon-message" title="Messages sent">
                         📨 {{ campaign.stats_messaged }} messages
                     </div>
                 </div>
             </div>
 
             <!-- Right Part: Actions -->
-            <div
-                style="flex: 0 0 160px; margin-left:30px; display:flex; flex-direction:column; gap: 10px; border-left:1px solid #f0f0f0; padding-left:20px; justify-content:center;">
+            <div class="campaign-actions">
                 {% if campaign.status == 'active' %}
-                <button onclick="runCampaign({{ campaign.id }})" class="btn-action"
-                    style="width:100%; justify-content:center;">
+                <button onclick="runCampaign({{ campaign.id }})" class="btn-action">
                     ▶️ Run
                 </button>
                 <button onclick="pauseCampaign({{ campaign.id }})" class="btn-action"
-                    style="color: #ea8600; border-color: #ea8600; width:100%; justify-content:center;">
+                    style="color: #ea8600; border-color: #ea8600;">
                     ⏸️ Pause
                 </button>
                 {% elif campaign.status == 'paused' %}
                 <button onclick="resumeCampaign({{ campaign.id }})" class="btn-action"
-                    style="color: #1a73e8; border-color: #1a73e8; width:100%; justify-content:center;">
+                    style="color: #1a73e8; border-color: #1a73e8;">
                     ▶️ Resume
                 </button>
                 {% endif %}
 
-                <button onclick="openEditCampaign({{ campaign.id }})" class="btn-action"
-                    style="color: #1a73e8; border-color: #dadce0; width:100%; justify-content:center;">
+                <button onclick="openEditCampaign({{ campaign.id }})" class="btn-action">
                     ✏️ Edit
                 </button>
 
                 <button onclick="openLogsModal({{ campaign.id }}, '{{ campaign.name|replace("'", "\\'") }}')"
-                    class="btn-action"
-                    style="color: #5f6368; border-color: #dadce0; width:100%; justify-content:center;">
+                    class="btn-action log-btn">
                     📜 Logs
                 </button>
 
-                <button onclick="deleteCampaign({{ campaign.id }})" class="btn-action"
-                    style="color: #d93025; border-color: #fce8e6; background:#fff; width:100%; justify-content:center; margin-top: auto;"
-                    onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='#fff'">
+                <button onclick="deleteCampaign({{ campaign.id }})" class="btn-action delete-btn">
                     🗑️ Delete
                 </button>
             </div>
