@@ -5,6 +5,7 @@ Application Flask pour l'interface web du bot LinkedIn.
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import sys
 import os
+import requests
 import bcrypt
 from functools import wraps
 
@@ -947,3 +948,66 @@ def get_system_prompt_global(db):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+@app.route('/api/check_proxy/<int:account_id>')
+@login_required
+def check_proxy(account_id):
+    """Vérifier la connexion proxy pour un compte spécifique"""
+    db = SessionLocal()
+    try:
+        # Vérifier que le compte appartient à l'utilisateur
+        account = db.query(Account).filter(Account.id == account_id, Account.user_id == session['user_id']).first()
+        if not account:
+            return jsonify({'success': False, 'error': 'Compte introuvable'}), 404
+
+        if not account.proxy_enabled or not account.proxy_url:
+             return jsonify({'success': False, 'error': 'Proxy désactivé'}), 400
+             
+        # Construction du string proxy
+        proxy_url = account.proxy_url.strip()
+        
+        # Gestion basique du schéma si absent
+        if '://' not in proxy_url:
+             proxy_url = f"http://{proxy_url}"
+        
+        # Séparation du schéma pour injection credentials
+        scheme, address = proxy_url.split('://', 1)
+        
+        final_proxy = None
+        if account.proxy_username and account.proxy_password:
+             final_proxy = f"{scheme}://{account.proxy_username}:{account.proxy_password}@{address}"
+        else:
+             final_proxy = proxy_url
+
+        proxies = {
+            'http': final_proxy,
+            'https': final_proxy
+        }
+        
+        headers = {'User-Agent': account.user_agent or 'Mozilla/5.0'}
+        
+        # Test vers API IP
+        print(f"📡 Test Proxy pour {account.name}: {final_proxy}")
+        
+        # On utilise ip-api pour avoir le pays facilement (HTTP)
+        resp = requests.get('http://ip-api.com/json', headers=headers, proxies=proxies, timeout=10)
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('status') == 'success':
+                return jsonify({
+                    'success': True, 
+                    'ip': data.get('query'), 
+                    'country': data.get('countryCode')
+                })
+            else:
+                 return jsonify({'success': False, 'error': 'Réponse API invalide'})
+        else:
+             return jsonify({'success': False, 'error': f'HTTP {resp.status_code}'})
+             
+    except Exception as e:
+         print(f"❌ Erreur test proxy: {e}")
+         return jsonify({'success': False, 'error': str(e)})
+
+    finally:
+        db.close()
