@@ -221,11 +221,19 @@
             const data = await res.json();
 
             if (data.success) {
-                resultDiv.innerHTML = `
-                    <span style="color: #2e7d32; font-weight: 600;">
-                        ✅ Connected via ${data.ip} (${data.country})
-                    </span>
-                `;
+                if (data.using_proxy) {
+                    resultDiv.innerHTML = `
+                        <span style="color: #2e7d32; font-weight: 600;">
+                            ✅ Proxy ACTIVE - ${data.ip} (${data.country})
+                        </span>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <span style="color: #e65100; font-weight: 600;">
+                            ⚠️ Proxy OFF (Direct IP) - ${data.ip} (${data.country})
+                        </span>
+                    `;
+                }
             } else {
                 resultDiv.innerHTML = `
                     <span style="color: #d32f2f; font-weight: 500;">

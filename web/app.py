@@ -961,35 +961,37 @@ def check_proxy(account_id):
             return jsonify({'success': False, 'error': 'Compte introuvable'}), 404
 
         if not account.proxy_enabled or not account.proxy_url:
-             return jsonify({'success': False, 'error': 'Proxy désactivé'}), 400
-             
-        # Construction du string proxy
-        proxy_url = account.proxy_url.strip()
-        
-        # Gestion basique du schéma si absent
-        if '://' not in proxy_url:
-             proxy_url = f"http://{proxy_url}"
-        
-        # Séparation du schéma pour injection credentials
-        scheme, address = proxy_url.split('://', 1)
-        
-        final_proxy = None
-        if account.proxy_username and account.proxy_password:
-             final_proxy = f"{scheme}://{account.proxy_username}:{account.proxy_password}@{address}"
+             print(f"📡 Test IP Direct (Proxy désactivé) pour {account.name}")
+             proxies = None
+             using_proxy = False
         else:
-             final_proxy = proxy_url
+             using_proxy = True
+             # Construction du string proxy
+             proxy_url = account.proxy_url.strip()
+            
+             # Gestion basique du schéma si absent
+             if '://' not in proxy_url:
+                 proxy_url = f"http://{proxy_url}"
+            
+             # Séparation du schéma pour injection credentials
+             scheme, address = proxy_url.split('://', 1)
+            
+             final_proxy = None
+             if account.proxy_username and account.proxy_password:
+                 final_proxy = f"{scheme}://{account.proxy_username}:{account.proxy_password}@{address}"
+             else:
+                 final_proxy = proxy_url
 
-        proxies = {
-            'http': final_proxy,
-            'https': final_proxy
-        }
+             proxies = {
+                'http': final_proxy,
+                'https': final_proxy
+             }
+             print(f"📡 Test Proxy pour {account.name}: {final_proxy}")
         
         headers = {'User-Agent': account.user_agent or 'Mozilla/5.0'}
         
-        # Test vers API IP
-        print(f"📡 Test Proxy pour {account.name}: {final_proxy}")
-        
         # On utilise ip-api pour avoir le pays facilement (HTTP)
+        # Note: ip-api est HTTP only pour la version gratuite
         resp = requests.get('http://ip-api.com/json', headers=headers, proxies=proxies, timeout=10)
         
         if resp.status_code == 200:
@@ -998,7 +1000,8 @@ def check_proxy(account_id):
                 return jsonify({
                     'success': True, 
                     'ip': data.get('query'), 
-                    'country': data.get('countryCode')
+                    'country': data.get('countryCode'),
+                    'using_proxy': using_proxy
                 })
             else:
                  return jsonify({'success': False, 'error': 'Réponse API invalide'})
