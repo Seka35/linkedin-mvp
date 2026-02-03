@@ -447,8 +447,10 @@ td a:hover {
         flex-wrap: wrap;
     }
 }
+
 /* Mobile Cards Layout Refinements */
 @media (max-width: 768px) {
+
     /* Filters as horizontal scroll */
     .filter-bar {
         overflow-x: auto;
@@ -457,7 +459,7 @@ td a:hover {
         margin-bottom: 20px;
         -webkit-overflow-scrolling: touch;
     }
-    
+
     .filter-btn {
         flex: 0 0 auto;
         font-size: 0.85rem;
@@ -466,7 +468,7 @@ td a:hover {
     /* Card styling adjustments */
     tr {
         display: grid;
-        grid-template-areas: 
+        grid-template-areas:
             "avatar name"
             "title title"
             "actions actions";
@@ -527,13 +529,15 @@ td a:hover {
 
     .actions-flex {
         display: grid;
-        grid-template-columns: 1fr 1fr auto; /* Connect, Message, Delete */
+        grid-template-columns: 1fr 1fr auto;
+        /* Connect, Message, Delete */
         gap: 10px;
         width: 100%;
     }
 
     .btn-tile {
-        width: 100%; /* Stretch buttons */
+        width: 100%;
+        /* Stretch buttons */
         height: 45px;
         font-size: 0.8rem;
         flex-direction: row;
@@ -552,7 +556,7 @@ td a:hover {
         background: #ffebee;
         color: #d32f2f;
     }
-    
+
     /* Ensure no horizontal scroll causing layout break */
     .prospects-page {
         overflow-x: hidden;
@@ -561,12 +565,13 @@ td a:hover {
 
 /* Mobile Refinements: Prospects & Messages */
 @media (max-width: 768px) {
+
     /* --- PROSPECTS CARDS --- */
     .prospects-page tr {
         display: grid;
         grid-template-columns: 70px 1fr;
         grid-template-rows: auto auto auto;
-        grid-template-areas: 
+        grid-template-areas:
             "avatar name"
             "avatar title"
             "actions actions";
@@ -574,7 +579,7 @@ td a:hover {
         padding: 15px;
         align-items: center;
         border: 1px solid #eee;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
     }
 
     /* Avatar fixed size */
@@ -583,21 +588,23 @@ td a:hover {
         width: 60px;
         height: 60px;
         justify-self: center;
-        align-self: flex-start; /* Align top */
+        align-self: flex-start;
+        /* Align top */
     }
-    
+
     .prospects-page .avatar-img {
         width: 60px;
         height: 60px;
         border: 2px solid #fff;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
 
     /* Name & Link */
     .prospects-page td:nth-child(2) {
         grid-area: name;
         display: flex;
-        flex-direction: row; /* Side by side on mobile if space allows, or wrap */
+        flex-direction: row;
+        /* Side by side on mobile if space allows, or wrap */
         flex-wrap: wrap;
         align-items: center;
         gap: 8px;
@@ -632,7 +639,8 @@ td a:hover {
         overflow: hidden;
         text-overflow: ellipsis;
         display: -webkit-box;
-        -webkit-line-clamp: 2; /* Limit to 2 lines */
+        -webkit-line-clamp: 2;
+        /* Limit to 2 lines */
         -webkit-box-orient: vertical;
     }
 
@@ -652,19 +660,34 @@ td a:hover {
 
     .prospects-page .btn-tile {
         flex: 1;
-        height: 38px; /* Slightly smaller */
+        height: auto;
+        /* Allow height to adjust */
+        min-height: 40px;
+        padding: 8px 5px;
         font-size: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        /* Stack icon and text */
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        line-height: normal;
     }
-    
+
     .prospects-page .btn-delete {
-        width: 38px;
-        height: 38px;
-        flex: 0 0 38px;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        /* Fixed width for delete button */
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     /* --- MESSAGES MOBILE --- */
     /* Target the table in messages-page */
-    .messages-page table, .messages-page tbody {
+    .messages-page table,
+    .messages-page tbody {
         display: block;
         width: 100%;
         background: transparent;
@@ -683,12 +706,13 @@ td a:hover {
         margin-bottom: 12px;
         padding: 12px;
         border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
         border: 1px solid #eee;
     }
 
     /* Avatar */
-    .messages-page td:nth-child(2) { /* Avatar is 2nd column in HTML */
+    .messages-page td:nth-child(2) {
+        /* Avatar is 2nd column in HTML */
         grid-area: avatar;
         padding: 0 !important;
         border: none !important;
@@ -706,14 +730,15 @@ td a:hover {
         border: none !important;
         align-self: center;
     }
-    
+
     .messages-page td:nth-child(3) strong {
-        font-size: 0.95rem; 
+        font-size: 0.95rem;
         color: #333;
     }
-    
+
     .messages-page td:nth-child(3) span {
-        display: none; /* Hide headline in message list to save space */
+        display: none;
+        /* Hide headline in message list to save space */
     }
 
     /* Status badge */
@@ -724,7 +749,7 @@ td a:hover {
         justify-self: end;
         align-self: center;
     }
-    
+
     .status-badge {
         font-size: 0.7rem;
         padding: 2px 8px;
