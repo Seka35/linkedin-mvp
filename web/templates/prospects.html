@@ -9,12 +9,9 @@
         margin-bottom: 25px;
         border-bottom: 1px solid #e0e0e0;
         padding-bottom: 15px;
-        overflow-x: auto;
-        /* Enable horizontal scroll */
-        white-space: nowrap;
-        -webkit-overflow-scrolling: touch;
-        flex-wrap: nowrap;
-        /* Prevent wrapping */
+        flex-wrap: wrap;
+        /* Allow wrapping */
+        align-items: center;
     }
 
     /* Hide scrollbar for Chrome/Safari/Opera */
@@ -347,21 +344,35 @@
 
     <!-- Filters -->
     <div class="filter-bar">
-        <!-- The filter logic relies on 'status=' value which must match DB, text can be translated -->
-        <a href="/prospects?status=all" class="filter-btn {{ 'active' if current_status == 'all' else '' }}">All ({{
-            counts.all }})</a>
-        <a href="/prospects?status=new" class="filter-btn {{ 'active' if current_status == 'new' else '' }}">New ({{
-            counts.new }})</a>
-        <a href="/prospects?status=connected"
-            class="filter-btn {{ 'active' if current_status == 'connected' else '' }}">Connected ({{ counts.connected
+        <!-- Status Filters -->
+        <a href="/prospects?status=all&tag={{ current_tag }}"
+            class="filter-btn {{ 'active' if status_filter == 'all' else '' }}">All ({{ counts.all }})</a>
+        <a href="/prospects?status=new&tag={{ current_tag }}"
+            class="filter-btn {{ 'active' if status_filter == 'new' else '' }}">New ({{ counts.new }})</a>
+        <a href="/prospects?status=connected&tag={{ current_tag }}"
+            class="filter-btn {{ 'active' if status_filter == 'connected' else '' }}">Connected ({{ counts.connected
             }})</a>
-        <a href="/prospects?status=followed"
-            class="filter-btn {{ 'active' if current_status == 'followed' else '' }}">Followed ({{ counts.followed
+        <a href="/prospects?status=followed&tag={{ current_tag }}"
+            class="filter-btn {{ 'active' if status_filter == 'followed' else '' }}">Followed ({{ counts.followed
             }})</a>
-        <!-- Keep message filter logic same, label translated -->
-        <a href="/prospects?status=messaged"
-            class="filter-btn {{ 'active' if current_status == 'messaged' else '' }}">Messaged ({{ counts.messaged
+        <a href="/prospects?status=messaged&tag={{ current_tag }}"
+            class="filter-btn {{ 'active' if status_filter == 'messaged' else '' }}">Messaged ({{ counts.messaged
             }})</a>
+
+        <!-- Divider -->
+        <div style="width: 1px; background: #ddd; margin: 0 10px;"></div>
+
+        <!-- Tag Filters -->
+        <span style="display:flex; align-items:center; color:#777; font-size:0.9rem; margin-right:5px;">🏷️ Tags:</span>
+        <a href="/prospects?status={{ status_filter }}&tag=all"
+            class="filter-btn {{ 'active' if current_tag == 'all' else '' }}">All</a>
+        {% for tag in all_tags %}
+        <a href="/prospects?status={{ status_filter }}&tag={{ tag.id }}"
+            class="filter-btn {{ 'active' if current_tag == tag.id|string else '' }}"
+            style="border-bottom: 3px solid {{ tag.color }};">
+            {{ tag.name }}
+        </a>
+        {% endfor %}
     </div>
 
     <!-- Table -->
@@ -384,7 +395,15 @@
 
                 <!-- Name & Link -->
                 <td style="width: 300px;">
-                    <span class="name-text">{{ p.full_name }}</span>
+                    <div class="name-text">{{ p.full_name }}</div>
+                    <div style="margin-bottom: 5px;">
+                        {% for tag in p.tags %}
+                        <span class="skill-tag"
+                            style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}; font-size: 0.7rem; padding: 1px 6px; border-radius: 4px;">
+                            {{ tag.name }}
+                        </span>
+                        {% endfor %}
+                    </div>
                     <a href="{{ p.linkedin_url }}" target="_blank" class="linkedin-link"
                         onclick="event.stopPropagation()">LinkedIn ↗</a>
                 </td>

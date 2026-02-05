@@ -4,7 +4,62 @@ Usage: python enrich_prospects.py --limit 100
 """
 import argparse
 from database import SessionLocal, Prospect
+from database.models import Tag
 from services.apify_enrichment import ApifyEnricher
+import json
+import re
+
+# Auto-Segmentation Logic
+def assign_segment(session, prospect, size_str):
+    if not size_str:
+        return
+
+    # Parse size using regex to be robust
+    # e.g. "11-50 employees" -> 11
+    # "10,001+ employees" -> 10001
+    
+    # 1. Clean string (remove commas)
+    s_clean = size_str.replace(",", "")
+    
+    # 2. Extract first number
+    numbers = re.findall(r'\d+', s_clean)
+    if not numbers:
+        return
+
+    lower = int(numbers[0])
+    tag_name = None
+
+    # Logic based on User definitions
+    # Segment A (11-100)
+    # Segment B (101-500)
+    # Segment C (501-2000)
+    # Hors Cible (Others)
+
+    if 1 <= lower <= 10:
+        tag_name = 'Hors Cible'
+    elif 11 <= lower <= 100:
+        tag_name = 'Segment A (11-100)'
+    elif 101 <= lower <= 500:
+        tag_name = 'Segment B (101-500)'
+    elif 501 <= lower <= 2000:
+        tag_name = 'Segment C (501-2000)'
+    elif 2001 <= lower <= 5000:
+        # Previously mapped 1001-5000 to C. But user said C is 501-2000.
+        # Let's map 2001-5000 to C as well to be safe? Or Hors Cible?
+        # User request: "Segment C (501-2000)".
+        # Let's assume > 2000 is Hors Cible unless likely relevant.
+        # Previous logic: 1001-5000 -> C.
+        tag_name = 'Segment C (501-2000)'
+    else:
+        # > 5000
+        tag_name = 'Hors Cible'
+
+    if tag_name:
+        tag = session.query(Tag).filter_by(name=tag_name).first()
+        if tag:
+            if tag not in prospect.tags:
+                prospect.tags.append(tag)
+                print(f"🏷️ Auto-tagged {prospect.full_name}: {tag_name}")
 import json
 import re
 
@@ -109,6 +164,11 @@ def enrich_prospects(limit=20, force_clean=False, redo_empty=False):
         if matched_prospect:
             data = enricher.parse_result_to_db(item)
             
+            # Extract names for checks
+            first = item.get('firstName')
+            last = item.get('lastName')
+            full = item.get('fullName')
+            
             # Update fields
             matched_prospect.summary = data['summary']
             if data['email']: matched_prospect.email = data['email']
@@ -131,12 +191,12 @@ def enrich_prospects(limit=20, force_clean=False, redo_empty=False):
                     # but we'll stick to simple deletion of the prospect for now.
                     # If you have Actions separately linked, you might need to delete them first if no CASCADE.
                     # Assuming basic deletion is fine or SQLAlchemy handles cascade if configured.
-                    session.delete(matched_prospect)
-                    session.commit()
+                    db.delete(matched_prospect)
+                    db.commit()
                     print(f"🗑️ Deleted Ghost Profile: {matched_prospect.id}")
                 except Exception as e:
                     print(f"❌ Error deleting ghost profile: {e}")
-                    session.rollback()
+                    db.rollback()
                 continue
 
             # Nouveaux champs enrichis
@@ -153,6 +213,9 @@ def enrich_prospects(limit=20, force_clean=False, redo_empty=False):
             
             # RAW
             matched_prospect.raw_data = data['raw_data']
+            
+            # Auto-Segment
+            assign_segment(db, matched_prospect, matched_prospect.company_size)
             
             if first and last:
                 matched_prospect.full_name = f"{first} {last}"

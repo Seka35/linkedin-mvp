@@ -13,7 +13,7 @@ from functools import wraps
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database import init_db, SessionLocal, Prospect, Campaign, Action, Settings, Account
-from database.models import User
+from database.models import User, Tag
 from services.scraper import LinkedInScraper
 from services.linkedin_bot import LinkedInBot
 from services.ai_service import AIService
@@ -161,32 +161,35 @@ def prospects():
     db = SessionLocal()
     
     status_filter = request.args.get('status', 'all')
-    
-    # Filtrage spécial pour "messaged" : tous ceux qui ont reçu au moins 1 message
+    tag_filter = request.args.get('tag', 'all')
+    all_tags = db.query(Tag).all()
+
+    # Base Query
+    query = db.query(Prospect).filter(Prospect.account_id == g.account.id)
+
+    # Filter by Status (existing logic adapted)
     if status_filter == 'messaged':
-        # Récupérer les IDs des prospects qui ont reçu au moins 1 message
-        prospect_ids_with_messages = db.query(Action.prospect_id).join(Prospect).filter(
-            Prospect.account_id == g.account.id,
-            Action.action_type == 'message',
-            Action.status == 'success'
-        ).distinct().all()
-        
-        prospect_ids = [pid[0] for pid in prospect_ids_with_messages]
-        
-        if prospect_ids:
-            prospects_list = db.query(Prospect).filter(
-                Prospect.id.in_(prospect_ids)
-            ).order_by(Prospect.added_at.desc()).all()
-        else:
-            prospects_list = []
-    else:
-        # Filtrage normal par statut
-        query = db.query(Prospect).filter(Prospect.account_id == g.account.id)
-        if status_filter != 'all':
-            query = query.filter(Prospect.status == status_filter)
-        prospects_list = query.order_by(Prospect.added_at.desc()).all()
+        # Special logic for messaged
+        # ... (keep existing messaged logic if complex, or simplify)
+        # For simplicity, let's just reuse the status column if 'messaged' is a valid status?
+        # User previously defined messaged logic via Actions. Let's keep it consistent.
+        # But for query building it's cleaner to chain filters.
+        # Let's rebuild query to be composable.
+        pass
     
-    # Pour chaque prospect, compter le nombre de messages envoyés
+    # 1. Apply Status Filter
+    if status_filter == 'messaged':
+        query = query.join(Action).filter(Action.action_type == 'message', Action.status == 'success').distinct()
+    elif status_filter != 'all':
+        query = query.filter(Prospect.status == status_filter)
+        
+    # 2. Apply Tag Filter
+    if tag_filter and tag_filter != 'all':
+        query = query.join(Prospect.tags).filter(Tag.id == int(tag_filter))
+        
+    prospects_list = query.order_by(Prospect.added_at.desc()).all()
+    
+    # Pour chaque prospect, compter le nombre de messages envoyés (legacy logic check)
     for prospect in prospects_list:
         message_count = db.query(Action).filter(
             Action.prospect_id == prospect.id,
@@ -195,7 +198,7 @@ def prospects():
         ).count()
         prospect.message_count = message_count
     
-    # Calculer les compteurs pour chaque filtre
+    # Calculer les compteurs pour chaque filtre (Status)
     account_id = g.account.id
     counts = {
         'all': db.query(Prospect).filter(Prospect.account_id == account_id).count(),
@@ -220,7 +223,8 @@ def prospects():
             'photo': p.profile_picture or '',
             'about': p.summary or 'No description available.',
             'experience': p.experiences or 'No experience info.',
-            'skills': p.skills or ''
+            'skills': p.skills or '',
+            'tags': [{'name': t.name, 'color': t.color} for t in p.tags]
         }
     
     db.close()
@@ -228,6 +232,8 @@ def prospects():
     return render_template('prospects.html', 
                          prospects=prospects_list, 
                          status_filter=status_filter, 
+                         current_tag=tag_filter,
+                         all_tags=all_tags,
                          counts=counts,
                          prospects_json=json.dumps(prospects_data))
 
@@ -284,10 +290,25 @@ def messages():
 def api_scrape():
     """API: Lancer un scraping"""
     data = request.json
-    query = data.get('query')
     max_results = int(data.get('max_results', 20))
     use_apify = data.get('use_apify', False)
     
+    # 1. Check for manual query
+    query = data.get('query')
+    
+    # 2. Advanced Builder (if no manual query)
+    if not query:
+        role = data.get('role')
+        industry = data.get('industry')
+        location = data.get('location')
+        
+        if role or industry or location:
+            parts = ['site:linkedin.com/in/']
+            if role: parts.append(f'"{role}"')
+            if industry: parts.append(f'"{industry}"')
+            if location: parts.append(f'"{location}"')
+            query = " ".join(parts)
+
     if not query:
         return jsonify({'error': 'Query required'}), 400
     

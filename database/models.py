@@ -3,10 +3,23 @@ Modèles de base de données SQLAlchemy.
 3 tables principales: Prospect, Campaign, Action
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Float, Table
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .db import Base
+
+# Association Table
+prospect_tags = Table('prospect_tags', Base.metadata,
+    Column('prospect_id', Integer, ForeignKey('prospects.id'), primary_key=True),
+    Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True)
+)
+
+class Tag(Base):
+    __tablename__ = 'tags'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    color = Column(String, default='#6c757d') # Hex color
+
 
 
 class Account(Base):
@@ -92,6 +105,7 @@ class Prospect(Base):
     actions = relationship("Action", back_populates="prospect")
     campaign = relationship("Campaign", back_populates="prospects")
     account = relationship("Account", back_populates="prospects")
+    tags = relationship("Tag", secondary=prospect_tags, backref="prospects")
 
 class Campaign(Base):
     """Table des campagnes de prospection"""

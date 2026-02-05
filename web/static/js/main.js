@@ -3,6 +3,10 @@ document.getElementById('search-form')?.addEventListener('submit', async (e) => 
     e.preventDefault();
 
     const query = document.getElementById('search-query').value;
+    const role = document.getElementById('search-role')?.value;
+    const industry = document.getElementById('search-industry')?.value;
+    const location = document.getElementById('search-location')?.value;
+
     const maxResults = document.getElementById('max-results').value;
 
     const resultsDiv = document.getElementById('search-results');
@@ -12,7 +16,13 @@ document.getElementById('search-form')?.addEventListener('submit', async (e) => 
         const response = await fetch('/api/scrape', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query, max_results: parseInt(maxResults) })
+            body: JSON.stringify({
+                query,
+                role,
+                industry,
+                location,
+                max_results: parseInt(maxResults)
+            })
         });
 
         const data = await response.json();
