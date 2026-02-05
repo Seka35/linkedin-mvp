@@ -3,7 +3,7 @@ Modèles de base de données SQLAlchemy.
 3 tables principales: Prospect, Campaign, Action
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .db import Base
@@ -67,6 +67,17 @@ class Prospect(Base):
     experiences = Column(Text)      # JSON
     education = Column(Text)        # JSON
     languages = Column(Text)        # JSON
+    
+    # Nouvelles données détaillées
+    connections_count = Column(Integer)
+    followers_count = Column(Integer)
+    is_premium = Column(Boolean)
+    is_creator = Column(Boolean)
+    is_verified = Column(Boolean)
+    company_size = Column(String)
+    industry = Column(String)
+    years_of_experience = Column(Float) # Changed to Float for values like 13.4
+    raw_data = Column(Text) # JSON complet du dump
     
     # Status du prospect
     status = Column(String, default='new')  # new, connected, messaged, replied

@@ -122,10 +122,37 @@ def enrich_prospects(limit=20, force_clean=False, redo_empty=False):
             matched_prospect.education = data['education']
             matched_prospect.languages = data['languages']
             
-            # Nom
-            first = item.get('firstName')
-            last = item.get('lastName')
-            full = item.get('fullName') or item.get('name')
+            # Check for Ghost/Invalid Profile
+            # Criteria: No first name AND no last name, or explicit error in raw data
+            if not first and not last:
+                print(f"👻 Ghost Profile Detected for {matched_prospect.linkedin_url} (No Name). Deleting...")
+                try:
+                    # Generic deletion of related actions is handled by Foreign Key cascade if set, 
+                    # but we'll stick to simple deletion of the prospect for now.
+                    # If you have Actions separately linked, you might need to delete them first if no CASCADE.
+                    # Assuming basic deletion is fine or SQLAlchemy handles cascade if configured.
+                    session.delete(matched_prospect)
+                    session.commit()
+                    print(f"🗑️ Deleted Ghost Profile: {matched_prospect.id}")
+                except Exception as e:
+                    print(f"❌ Error deleting ghost profile: {e}")
+                    session.rollback()
+                continue
+
+            # Nouveaux champs enrichis
+            matched_prospect.connections_count = data['connections_count']
+            matched_prospect.followers_count = data['followers_count']
+            matched_prospect.is_premium = data['is_premium']
+            matched_prospect.is_creator = data['is_creator']
+            matched_prospect.is_verified = data['is_verified']
+            matched_prospect.years_of_experience = data['years_of_experience']
+            
+            # Company Details
+            matched_prospect.company_size = data['company_size']
+            matched_prospect.industry = data['industry']
+            
+            # RAW
+            matched_prospect.raw_data = data['raw_data']
             
             if first and last:
                 matched_prospect.full_name = f"{first} {last}"

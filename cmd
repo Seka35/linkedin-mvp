@@ -10,3 +10,6 @@ docker-compose up -d
 
 # Tester
 curl -I https://linkedin.tbisla.pro
+
+# si DB modifier
+docker exec -it linkedin_bot_app python migrate_actions_source.py

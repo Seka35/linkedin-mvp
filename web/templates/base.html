@@ -66,18 +66,36 @@
 
     <!-- GLOBAL DETAILS MODAL -->
     <div id="prospect-modal" class="modal-overlay" onclick="if(event.target === this) closeModal()">
-        <div class="modal-content">
+        <div class="modal-content" style="width: 700px; max-width: 95%;">
             <button class="close-modal" onclick="closeModal()">&times;</button>
 
-            <div class="modal-header">
-                <img id="m-photo" src="" alt="Profile" class="modal-img">
-                <div class="modal-info">
-                    <h2 id="m-name">Loading...</h2>
-                    <p id="m-headline"></p>
-                    <p id="m-location-container" style="font-size:0.85rem; color:#888; margin-top:5px; display:none;">
+            <div class="modal-header" style="align-items: flex-start;">
+                <img id="m-photo" src="" alt="Profile" class="modal-img"
+                    style="width: 100px; height: 100px; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div class="modal-info" style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <h2 id="m-name" style="margin: 0;">Loading...</h2>
+                        <span id="badge-premium" class="badge-icon" title="Premium" style="display:none;">💎</span>
+                        <span id="badge-verified" class="badge-icon" title="Verified" style="display:none;">✅</span>
+                        <span id="badge-creator" class="badge-icon" title="Creator" style="display:none;">🎨</span>
+                    </div>
+
+                    <p id="m-headline" style="margin-top: 5px; font-size: 1.1rem; color: #333;"></p>
+
+                    <p id="m-location-container" style="font-size:0.9rem; color:#666; margin-top:5px; display:none;">
                         📍 <span id="m-location"></span>
                     </p>
-                    <p id="m-contact-container" style="font-size:0.85rem; color:#555; margin-top:5px; display:none;">
+
+                    <div id="m-stats-bar"
+                        style="display: flex; gap: 15px; margin-top: 10px; font-size: 0.85rem; color: #555; background: #f8f9fa; padding: 8px 12px; border-radius: 8px; width: fit-content;">
+                        <span id="stat-connections" title="Connections">👥 <b>-</b> Conn</span>
+                        <span style="border-left: 1px solid #ddd;"></span>
+                        <span id="stat-followers" title="Followers">📢 <b>-</b> Foll</span>
+                        <span style="border-left: 1px solid #ddd;"></span>
+                        <span id="stat-exp" title="Total Experience">bs <b>-</b> Yrs Exp</span>
+                    </div>
+
+                    <p id="m-contact-container" style="font-size:0.85rem; color:#555; margin-top:10px; display:none;">
                         <span id="m-email-box" style="margin-right:15px; display:none;">📧 <a id="m-email" href="#"
                                 style="color:#1976d2; text-decoration:none;"></a></span>
                         <span id="m-phone-box" style="display:none;">📞 <span id="m-phone"></span></span>
@@ -93,7 +111,6 @@
 
                 <div class="modal-section">
                     <h3>Experience</h3>
-                    <!-- Removed modal-text class to avoid global pre-wrap -->
                     <div id="m-experience"></div>
                 </div>
 
@@ -107,6 +124,11 @@
 
     <!-- GLOBAL STYLES FOR MODAL -->
     <style>
+        .badge-icon {
+            font-size: 1.2rem;
+            cursor: help;
+        }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -160,35 +182,102 @@
         }
 
         .modal-section {
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
         .modal-section h3 {
-            font-size: 1rem;
-            color: #333;
+            font-size: 0.9rem;
+            color: #888;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #1976d2;
-            display: inline-block;
-            margin-bottom: 10px;
-            padding-bottom: 3px;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #eee;
+            display: block;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            font-weight: 600;
         }
 
         .modal-text {
             font-size: 0.9rem;
-            line-height: 1.5;
-            color: #444;
+            line-height: 1.6;
+            color: #333;
             white-space: pre-wrap;
         }
 
         .skill-tag {
             display: inline-block;
-            background: #e8f0fe;
-            color: #1967d2;
-            padding: 4px 10px;
-            border-radius: 12px;
+            background: #f1f3f4;
+            color: #333;
+            padding: 5px 12px;
+            border-radius: 16px;
             font-size: 0.85rem;
-            margin: 3px;
+            margin: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* Experience Card Style */
+        .exp-item {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f9f9f9;
+        }
+
+        .exp-logo {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            border-radius: 4px;
+            background: white;
+            border: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .exp-details {
+            flex: 1;
+        }
+
+        .exp-title {
+            font-weight: 700;
+            color: #202124;
+            font-size: 1rem;
+        }
+
+        .exp-company {
+            font-weight: 500;
+            color: #1976d2;
+            /* Link color */
+            font-size: 0.95rem;
+            text-decoration: none;
+        }
+
+        .exp-company:hover {
+            text-decoration: underline;
+        }
+
+        .exp-meta {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 2px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .exp-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .exp-desc {
+            font-size: 0.9rem;
+            color: #444;
+            margin-top: 8px;
+            white-space: pre-wrap;
+            line-height: 1.5;
         }
 
         .close-modal {
@@ -210,110 +299,151 @@
     <script>
         async function openModal(id) {
             const modal = document.getElementById('prospect-modal');
-            modal.display = 'flex'; // Show immediately
-            document.getElementById('m-name').textContent = "Loading...";
 
-            // Reset display
+            // Reset fields
+            document.getElementById('m-name').textContent = "Loading...";
+            document.getElementById('m-headline').textContent = "";
+            document.getElementById('m-photo').src = "";
+            document.getElementById('m-about').textContent = "";
+            document.getElementById('m-experience').innerHTML = "";
+            document.getElementById('m-skills').innerHTML = "";
+
+            // Hide specific elements
+            document.getElementById('badge-premium').style.display = 'none';
+            document.getElementById('badge-verified').style.display = 'none';
+            document.getElementById('badge-creator').style.display = 'none';
             document.getElementById('m-location-container').style.display = 'none';
             document.getElementById('m-contact-container').style.display = 'none';
-            document.getElementById('sec-skills').style.display = 'none';
+            document.getElementById('m-stats-bar').style.display = 'none';
 
-            document.getElementById('prospect-modal').style.display = 'flex';
+            modal.style.display = 'flex';
 
             try {
                 const res = await fetch(`/api/prospects/${id}`);
-                const data = await res.json();
+                const result = await res.json();
 
-                if (!data.success) {
+                if (!result.success) {
                     alert("Error loading prospect details.");
                     closeModal();
                     return;
                 }
-                const p = data.prospect;
+                const p = result.prospect;
 
+                // 1. Header Info
                 document.getElementById('m-name').textContent = p.name;
-                document.getElementById('m-headline').textContent = p.headline;
+                document.getElementById('m-headline').textContent = p.headline || "";
+                document.getElementById('m-photo').src = p.photo || ('https://ui-avatars.com/api/?name=' + p.name);
 
-                // Location handling
+                // Badges
+                if (p.is_premium) document.getElementById('badge-premium').style.display = 'inline-block';
+                if (p.is_verified) document.getElementById('badge-verified').style.display = 'inline-block';
+                if (p.is_creator) document.getElementById('badge-creator').style.display = 'inline-block';
+
+                // Location
                 if (p.location && p.location.trim() !== "") {
                     document.getElementById('m-location').textContent = p.location;
                     document.getElementById('m-location-container').style.display = 'block';
                 }
 
-                // Contact handling
-                document.getElementById('m-contact-container').style.display = 'none';
-                document.getElementById('m-email-box').style.display = 'none';
-                document.getElementById('m-phone-box').style.display = 'none';
+                // Stats
+                if (p.connections_count || p.followers_count || p.years_of_experience) {
+                    document.getElementById('m-stats-bar').style.display = 'flex';
+                    document.querySelector('#stat-connections b').textContent = p.connections_count ? p.connections_count.toLocaleString() : '-';
+                    document.querySelector('#stat-followers b').textContent = p.followers_count ? p.followers_count.toLocaleString() : '-';
+                    document.querySelector('#stat-exp b').textContent = p.years_of_experience ? p.years_of_experience + 'y' : '-';
+                }
 
+                // Contacts
                 let hasContact = false;
-                if (p.email && p.email.trim() !== "") {
+                if (p.email && p.email.trim()) {
                     document.getElementById('m-email').textContent = p.email;
                     document.getElementById('m-email').href = "mailto:" + p.email;
                     document.getElementById('m-email-box').style.display = 'inline';
                     hasContact = true;
                 }
-                if (p.phone && p.phone.trim() !== "") {
+                if (p.phone && p.phone.trim()) {
                     document.getElementById('m-phone').textContent = p.phone;
                     document.getElementById('m-phone-box').style.display = 'inline';
                     hasContact = true;
                 }
-                if (hasContact) {
-                    document.getElementById('m-contact-container').style.display = 'block';
-                }
+                if (hasContact) document.getElementById('m-contact-container').style.display = 'block';
 
-                document.getElementById('m-photo').src = p.photo || ('https://ui-avatars.com/api/?name=' + p.name);
+                // 2. About
                 document.getElementById('m-about').textContent = p.about || "No description available.";
 
-                // Experience Parsing
+                // 3. Experience (Rich Display)
                 const expContainer = document.getElementById('m-experience');
-                expContainer.innerHTML = '';
                 let experiences = [];
                 try {
-                    if (p.experience && p.experience.trim().startsWith('[')) {
-                        experiences = JSON.parse(p.experience);
-                    } else {
-                        expContainer.textContent = p.experience || "No experience info.";
+                    if (p.experience) {
+                        if (typeof p.experience === 'string' && p.experience.trim().startsWith('[')) {
+                            experiences = JSON.parse(p.experience);
+                        } else if (Array.isArray(p.experience)) {
+                            experiences = p.experience;
+                        } else {
+                            // Fallback str
+                        }
                     }
-                } catch (e) { expContainer.textContent = p.experience || "No experience info."; }
+                } catch (e) { console.error("Exp parse error", e); }
 
-                if (Array.isArray(experiences) && experiences.length > 0) {
+                if (experiences.length > 0) {
                     experiences.forEach(exp => {
                         const div = document.createElement('div');
-                        div.style.marginBottom = '20px';
-                        div.style.borderLeft = '3px solid #1976d2'; // Blue accent
-                        div.style.paddingLeft = '12px';
+                        div.className = 'exp-item';
 
+                        // Extract rich fields
                         const title = exp.title || "Unknown Role";
                         const company = exp.companyName || exp.company || "";
-                        const dates = (exp.jobStartedOn || "") + (exp.jobEndedOn ? " - " + exp.jobEndedOn : (exp.jobStillWorking ? " - Present" : ""));
-                        const desc = exp.jobDescription || exp.description || "";
+                        const companyUrl = exp.companyLink1 || exp.companyUrl || exp.companyWebsite || "#";
+                        const logoUrl = exp.logo || "https://ui-avatars.com/api/?name=" + encodeURIComponent(company) + "&background=random";
 
-                        // Tight spacing for header info, pre-wrap only for description
+                        const industry = exp.companyIndustry || p.industry || ""; // Fallback to profile industry if current
+                        const size = exp.companySize || p.company_size || "";
+
+                        const dateRange = (exp.jobStartedOn || "") + (exp.jobEndedOn ? " - " + exp.jobEndedOn : (exp.jobStillWorking ? " - Present" : ""));
+                        const duration = exp.employmentType || ""; // Short description instead?
+                        const location = exp.jobLocation || "";
+
                         div.innerHTML = `
-                        <div style="font-weight:700; color:#222; font-size:1rem; margin-bottom:2px;">${title}</div>
-                        <div style="font-size:0.9rem; color:#444; font-weight:500; margin-bottom:2px;">${company}</div>
-                        <div style="font-size:0.8rem; color:#777; margin-bottom:8px;">${dates}</div>
-                        <div style="font-size:0.85rem; color:#555; white-space: pre-wrap; line-height:1.4;">${desc}</div>
-                    `;
+                            <img src="${logoUrl}" class="exp-logo" onerror="this.src='https://ui-avatars.com/api/?name=${company}'">
+                            <div class="exp-details">
+                                <div class="exp-title">${title}</div>
+                                <div>
+                                    <a href="${companyUrl}" target="_blank" class="exp-company">${company}</a>
+                                    ${industry ? `<span style="color:#888; font-size:0.85rem;"> • ${industry}</span>` : ''}
+                                </div>
+                                <div class="exp-meta">
+                                    <span>🗓️ ${dateRange}</span>
+                                    ${size ? `<span>👥 ${size}</span>` : ''}
+                                    ${location ? `<span>📍 ${location}</span>` : ''}
+                                </div>
+                                ${exp.jobDescription ? `<div class="exp-desc">${exp.jobDescription}</div>` : ''}
+                            </div>
+                        `;
                         expContainer.appendChild(div);
                     });
+                } else {
+                    expContainer.innerHTML = `<div style="color:#777; font-style:italic;">${p.experience || "No experience info."}</div>`;
                 }
 
-                // Skills Parsing
+                // 4. Skills
                 const skillsContainer = document.getElementById('m-skills');
-                skillsContainer.innerHTML = '';
                 const secSkills = document.getElementById('sec-skills');
                 let skills = [];
                 try {
-                    if (p.skills && p.skills.trim().startsWith('[')) {
-                        const parsed = JSON.parse(p.skills);
-                        skills = parsed.map(s => (typeof s === 'object' && s.title) ? s.title : s);
-                    } else if (p.skills) {
-                        skills = p.skills.split(/,|\n/).map(s => s.trim()).filter(s => s);
+                    if (p.skills) {
+                        if (typeof p.skills === 'string' && p.skills.trim().startsWith('[')) {
+                            const parsed = JSON.parse(p.skills);
+                            skills = parsed.map(s => (typeof s === 'object' && s.title) ? s.title : s);
+                        } else if (Array.isArray(p.skills)) {
+                            skills = p.skills.map(s => (typeof s === 'object' && s.title) ? s.title : s);
+                        } else {
+                            skills = p.skills.split(/,|\n/).map(s => s.trim()).filter(s => s);
+                        }
                     }
-                } catch (e) { if (p.skills) skills = p.skills.split(',').map(s => s.trim()); }
+                } catch (e) { }
 
-                if (skills && skills.length > 0) {
+                if (skills.length > 0) {
                     skills.forEach(s => {
                         const span = document.createElement('span');
                         span.className = 'skill-tag';

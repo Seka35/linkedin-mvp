@@ -644,7 +644,18 @@ def api_prospect_item(prospect_id):
             'email': prospect.email or '',
             'phone': prospect.phone or '',
             'experience': prospect.experiences or '',
-            'skills': prospect.skills or ''
+            'skills': prospect.skills or '',
+            
+            # Rich Data
+            'connections_count': prospect.connections_count,
+            'followers_count': prospect.followers_count,
+            'is_premium': prospect.is_premium,
+            'is_verified': prospect.is_verified,
+            'is_creator': prospect.is_creator,
+            'company_size': prospect.company_size,
+            'industry': prospect.industry,
+            'years_of_experience': prospect.years_of_experience,
+            'raw_data': prospect.raw_data or '{}' # Send as string, client parses it if needed
         }
         db.close()
         return jsonify({'success': True, 'prospect': data})

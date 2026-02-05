@@ -86,7 +86,22 @@ class ApifyEnricher:
             'skills': json.dumps(skills),
             'experiences': json.dumps(experiences),
             'education': json.dumps(education),
-            'languages': json.dumps(item.get('languages', []))
+            'languages': json.dumps(item.get('languages', [])),
+            
+            # Nouveaux champs
+            'connections_count': item.get('connections'),
+            'followers_count': item.get('followers'),
+            'is_premium': item.get('isPremium'),
+            'is_creator': item.get('isCreator'),
+            'is_verified': item.get('isVerified'),
+            'years_of_experience': item.get('totalExperienceYears'),
+            
+            # On essaye de choper les infos de la boite actuelle depuis le top-level ou la première expérience
+            'company_size': item.get('companySize') or (experiences[0].get('companySize') if experiences else None),
+            'industry': item.get('companyIndustry') or (experiences[0].get('companyIndustry') if experiences else None),
+            
+            # RAW DATA (Dump complet)
+            'raw_data': json.dumps(item)
         }
 
 if __name__ == "__main__":
