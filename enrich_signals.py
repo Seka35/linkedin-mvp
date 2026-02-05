@@ -31,13 +31,17 @@ def get_or_create_tag(session, name, color):
         session.commit()
     return tag
 
-def get_prospects_batch(session, limit=100):
+def get_prospects_batch(session, limit=100, force_rescan=False):
     # Fetch prospects, prioritizing those without ANY signal tags
     # This is a simple implementation: fetch all, then filter in python (for MVP simplicity)
     # Or better: just fetch latest and let the loop skip them.
     
     # Let's fetch strict list of 100 latest
     prospects = session.query(Prospect).order_by(Prospect.id.desc()).limit(limit).all()
+    
+    if force_rescan:
+        # Return all prospects for re-scanning
+        return prospects
     
     # Filter: Keep only if it doesn't have ANY signal tag
     signal_names = list(SIGNAL_TAGS.keys())
@@ -52,7 +56,7 @@ def get_prospects_batch(session, limit=100):
             
     return candidates
 
-def run_signal_enrichment():
+def run_signal_enrichment(force_rescan=False):
     session = SessionLocal()
     ai = AIService()
 
@@ -63,7 +67,7 @@ def run_signal_enrichment():
         tag_objects[name] = get_or_create_tag(session, "Signal: " + name, color)
 
     # 2. Fetch Prospects
-    prospects = get_prospects_batch(session, limit=50) # Limit 50 for test
+    prospects = get_prospects_batch(session, limit=50, force_rescan=force_rescan) # Limit 50 for test
     print(f"🔍 Found {len(prospects)} prospects to analyze.")
 
     # 3. Process in Batches
@@ -119,4 +123,9 @@ def run_signal_enrichment():
     print("✨ Signal Enrichment Complete!")
 
 if __name__ == "__main__":
-    run_signal_enrichment()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--force-rescan', action='store_true', help='Re-scan all prospects, even those already tagged')
+    args = parser.parse_args()
+    
+    run_signal_enrichment(force_rescan=args.force_rescan)
