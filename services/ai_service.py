@@ -104,3 +104,87 @@ class AIService:
                 
         except Exception as e:
             return f"Error calling AI: {str(e)}"
+
+    def analyze_batch_signals(self, prospects_list):
+        """
+        Analyse un lot de prospects pour détecter des "Signal Tags".
+        prospects_list: liste de dicts {'id': 1, 'headline': '...', 'about': '...'}
+        Retourne: dict { str(id): ['Tag1', 'Tag2'] }
+        """
+        # print(f"DEBUG INPUT: {type(prospects_list)} - {prospects_list}") # DEBUG
+        if not self.api_key:
+            print("Error: OPENROUTER_KEY not found")
+            return {}
+
+        prompt = """
+Role: You are an expert B2B analyst.
+Task: Analyze the following list of LinkedIn profiles and identify "Signal Tags".
+
+Signal Definitions:
+- "Platform/DevEx initiatives": Mentions Platform Engineering, IDP, Developer Experience, DevEX, DX.
+- "AI coding mentions": Mentions AI coding agents, Copilot, Cursor, LLM for code, autonomous coding.
+- "scaling/hiring": Mentions "scaling", "hypergrowth", "hiring", "growing", "recruiting".
+- "productivity investment": Mentions "engineering productivity", "developer productivity", "DORA metrics", "SPACE framework".
+- "refactor/tech debt narratives": Mentions "tech debt", "refactoring", "legacy code", "modernization".
+
+Input:
+{prospects_json}
+
+Output Rules:
+- Return ONLY valid JSON.
+- Format: {{ "id": ["tag_name1", "tag_name2"] }}
+- Use EXACT tag names from the list above.
+"""
+        
+        # Prepare clean JSON input for AI
+        clean_input = []
+        for p in prospects_list:
+            clean_input.append({
+                'id': str(p['id']),
+                'headline': (p.get('headline') or '')[:300],
+                'about': (p.get('summary') or '')[:500]
+            })
+            
+        final_prompt = prompt.format(prospects_json=json.dumps(clean_input))
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "HTTP-Referer": "https://linkedin-mvp.local",
+            "X-Title": "LinkedIn MVP",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": "You are a JSON-only response bot."},
+                {"role": "user", "content": final_prompt}
+            ],
+            "temperature": 0.0, # Deterministic
+            "response_format": { "type": "json_object" } # Force JSON if supported, else prompt does it
+        }
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/chat/completions",
+                headers=headers,
+                data=json.dumps(payload),
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result['choices'][0]['message']['content']
+                # print(f"DEBUG AI RESP: {content}") # DEBUG
+                
+                # Cleanup Markdown Code Blocks
+                content = content.replace("```json", "").replace("```", "").strip()
+                
+                # Parse JSON
+                return json.loads(content)
+            else:
+                print(f"AI Error: {response.text}")
+                return {}
+        except Exception as e:
+            print(f"Batch AI Error: {e}")
+            return {}

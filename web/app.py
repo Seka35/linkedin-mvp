@@ -163,6 +163,10 @@ def prospects():
     status_filter = request.args.get('status', 'all')
     tag_filter = request.args.get('tag', 'all')
     all_tags = db.query(Tag).all()
+    
+    # Split tags for UI dropdowns
+    segment_tags = [t for t in all_tags if "Segment" in t.name or "Hors Cible" in t.name]
+    signal_tags = [t for t in all_tags if "Signal" in t.name]
 
     # Base Query
     query = db.query(Prospect).filter(Prospect.account_id == g.account.id)
@@ -234,6 +238,8 @@ def prospects():
                          status_filter=status_filter, 
                          current_tag=tag_filter,
                          all_tags=all_tags,
+                         segment_tags=segment_tags,
+                         signal_tags=signal_tags,
                          counts=counts,
                          prospects_json=json.dumps(prospects_data))
 

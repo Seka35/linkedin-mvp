@@ -362,17 +362,44 @@
         <!-- Divider -->
         <div style="width: 1px; background: #ddd; margin: 0 10px;"></div>
 
-        <!-- Tag Filters -->
-        <span style="display:flex; align-items:center; color:#777; font-size:0.9rem; margin-right:5px;">🏷️ Tags:</span>
-        <a href="/prospects?status={{ status_filter }}&tag=all"
-            class="filter-btn {{ 'active' if current_tag == 'all' else '' }}">All</a>
-        {% for tag in all_tags %}
-        <a href="/prospects?status={{ status_filter }}&tag={{ tag.id }}"
-            class="filter-btn {{ 'active' if current_tag == tag.id|string else '' }}"
-            style="border-bottom: 3px solid {{ tag.color }};">
-            {{ tag.name }}
-        </a>
-        {% endfor %}
+        <!-- Tag Filters (Dropdowns) -->
+        <div style="display:flex; align-items:center; gap: 15px;">
+
+            <!-- Company Size Dropdown -->
+            <div style="display:flex; align-items:center; gap:5px;">
+                <span style="color:#777; font-size:0.9rem;">🏢 Size:</span>
+                <select onchange="location.href=this.value"
+                    style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: #fff;">
+                    <option value="/prospects?status={{ status_filter }}&tag=all">All Sizes</option>
+                    {% for tag in segment_tags %}
+                    <option value="/prospects?status={{ status_filter }}&tag={{ tag.id }}" {{ 'selected' if
+                        current_tag==tag.id|string else '' }}>
+                        {{ tag.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Signals Dropdown -->
+            <div style="display:flex; align-items:center; gap:5px;">
+                <span style="color:#777; font-size:0.9rem;">⚡ Signals:</span>
+                <select onchange="location.href=this.value"
+                    style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; background: #fff;">
+                    <option value="/prospects?status={{ status_filter }}&tag=all">All Signals</option>
+                    {% for tag in signal_tags %}
+                    <option value="/prospects?status={{ status_filter }}&tag={{ tag.id }}" {{ 'selected' if
+                        current_tag==tag.id|string else '' }}>
+                        {{ tag.name.replace('Signal: ', '') if 'Signal: ' in tag.name else tag.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% if current_tag != 'all' %}
+            <a href="/prospects?status={{ status_filter }}&tag=all"
+                style="font-size: 0.8rem; color: #d32f2f; text-decoration: none;">✕ Clear</a>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Table -->
