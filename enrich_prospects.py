@@ -231,6 +231,56 @@ def enrich_prospects(limit=20, force_clean=False, redo_empty=False):
             print(f"✅ Réparé: {matched_prospect.full_name}")
             
     db.commit()
+    
+    # AUTO-TAG SIGNALS with AI (NEW)
+    print("\n🤖 Running AI Signal Tagging on enriched prospects...")
+    from services.ai_service import AIService
+    ai = AIService()
+    
+    # Get or create signal tags
+    SIGNAL_TAGS = {
+        "Platform/DevEx initiatives": "#6f42c1",
+        "AI coding mentions": "#198754",
+        "scaling/hiring": "#fd7e14",
+        "productivity investment": "#0dcaf0",
+        "refactor/tech debt narratives": "#dc3545"
+    }
+    
+    tag_objects = {}
+    for name, color in SIGNAL_TAGS.items():
+        tag = db.query(Tag).filter_by(name="Signal: " + name).first()
+        if not tag:
+            tag = Tag(name="Signal: " + name, color=color)
+            db.add(tag)
+            db.commit()
+        tag_objects[name] = tag
+    
+    # Batch AI analysis (only for newly enriched)
+    enriched_prospects = [p for p in prospects if p.is_enriched]
+    BATCH_SIZE = 3
+    for i in range(0, len(enriched_prospects), BATCH_SIZE):
+        batch = enriched_prospects[i:i+BATCH_SIZE]
+        batch_data = [{'id': p.id, 'headline': p.headline, 'summary': p.summary, 'skills': p.skills} for p in batch]
+        
+        try:
+            results = ai.analyze_batch_signals(batch_data)
+            for p_id_str, tags_found in results.items():
+                if not tags_found:
+                    continue
+                p_id = int(p_id_str)
+                prospect = db.query(Prospect).get(p_id)
+                if not prospect:
+                    continue
+                for tag_key in tags_found:
+                    db_tag = tag_objects.get(tag_key)
+                    if db_tag and db_tag not in prospect.tags:
+                        prospect.tags.append(db_tag)
+                        print(f"🏷️ AI Tagged {prospect.full_name}: {tag_key}")
+            db.commit()
+        except Exception as e:
+            print(f"⚠️ AI Tagging Error: {e}")
+            db.rollback()
+    
     db.close()
     print(f"\n🏁 Terminé: {updated_count}/{len(prospects)} réparés.")
 

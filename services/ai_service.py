@@ -130,6 +130,8 @@ Signal Definitions:
 Input:
 {prospects_json}
 
+Each profile contains: id, headline, summary (bio), and skills (list).
+
 Output Rules:
 - Return ONLY valid JSON.
 - Format: {{ "id": ["tag_name1", "tag_name2"] }}

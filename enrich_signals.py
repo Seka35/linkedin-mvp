@@ -74,7 +74,8 @@ def run_signal_enrichment():
             batch_data.append({
                 'id': p.id,
                 'headline': p.headline,
-                'summary': p.summary
+                'summary': p.summary,
+                'skills': p.skills  # Add skills for better signal detection
             })
         
         print(f"🤖 Sending batch {i//BATCH_SIZE + 1} ({len(batch)} items) to AI...")
